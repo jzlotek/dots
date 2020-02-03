@@ -96,6 +96,7 @@ nnoremap <Leader>b :Buffers<CR>
 nnoremap <Leader>h :History<CR>
 nnoremap <Leader>t :BTags<CR>
 nnoremap <Leader>T :Tags<CR>
+nnoremap <Leader>l :Lines<CR>
 
 
 let g:gutentags_cache_dir = expand('/tmp/.cache/vim/ctags/')
@@ -249,6 +250,27 @@ function! TermToggle(height)
     let g:term_win = win_getid()
   endif
 endfunction
+
+" floating fzf
+if has('nvim')
+  let $FZF_DEFAULT_OPTS=' --layout=reverse --margin=1,4 --color fg:242,bg:233,hl:65,fg+:15,bg+:234,hl+:108,info:108,prompt:109,spinner:108,pointer:168,marker:168'
+  function! FloatingFZF()
+    let width = float2nr(&columns * 0.9)
+    let height = float2nr(&lines * 0.6)
+    let opts = {
+      \ 'relative': 'editor',
+      \ 'row': (&lines - height) / 2,
+      \ 'col': (&columns - width) / 2,
+      \ 'width': width,
+      \ 'height': height,
+      \ 'style': 'minimal'
+    \}
+    let buf = nvim_create_buf(v:false, v:true)
+    let win = nvim_open_win(buf, v:true, opts)
+    call setwinvar(win, '&winhl', 'NormalFloat:TabLine')
+  endfunction
+  let g:fzf_layout = { 'window': 'call FloatingFZF()' }
+endif
 
 " Toggle terminal on/off (neovim)
 nnoremap <A-t> :call TermToggle(12)<CR>
