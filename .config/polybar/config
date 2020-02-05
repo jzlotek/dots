@@ -73,7 +73,6 @@ exec = ~/.config/polybar/scripts/arch-updates.sh
 interval = 1000
 
 [module/mutt-wizard]
-
 type = custom/script
 exec = mailbox
 interval = 5
@@ -84,7 +83,6 @@ click-left = $TERMINAL -e neomutt
 
 
 [module/weather]
-
 type = custom/script
 exec = weather
 interval = 5000

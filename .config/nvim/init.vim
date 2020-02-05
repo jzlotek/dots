@@ -67,7 +67,8 @@ let g:ale_fixers = {
 \ }
 let g:ale_fix_on_save = 1
 
-let g:airline_theme='deus'
+"let g:airline_theme='deus'
+let g:airline_theme='wal'
 let g:airline#extensions#ale#enabled = 1
 let g:airline#extensions#coc#enabled = 1
 let g:airline#extensions#vimtex#enabled = 1
@@ -155,7 +156,8 @@ set nocompatible
 filetype plugin on
 syntax on
 highlight EndOfBuffer ctermfg=black ctermbg=black
-colorscheme Tomorrow-Night
+"colorscheme Tomorrow-Night
+colorscheme wal
 set number
 set relativenumber
 
