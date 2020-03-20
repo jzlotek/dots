@@ -36,6 +36,7 @@ super + shift + e
 	tutorialvids
 super + w
 	$TERMINAL -e sudo nmtui
+  # shuf_wallpaper
 super + shift + w
 	$BROWSER
 

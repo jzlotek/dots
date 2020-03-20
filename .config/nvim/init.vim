@@ -31,11 +31,13 @@ call plug#begin('~/.config/nvim/plugged')
   Plug 'junegunn/fzf', { 'dir': '~/.fzf', 'do': './install --all' }
   Plug 'junegunn/fzf.vim'
   Plug 'lervag/vimtex'
+  Plug 'posva/vim-vue'
 
 
   " File systems and git
   Plug 'airblade/vim-gitgutter'
   Plug 'tpope/vim-fugitive'
+  Plug 'jreybert/vimagit'
   Plug 'scrooloose/nerdtree', { 'on': 'NERDTreeToggle' }
   Plug 'Xuyuanp/nerdtree-git-plugin'
   Plug 'junegunn/goyo.vim'
@@ -255,7 +257,8 @@ endfunction
 
 " floating fzf
 if has('nvim')
-  let $FZF_DEFAULT_OPTS=' --layout=reverse --margin=1,4 --color fg:242,bg:233,hl:65,fg+:15,bg+:234,hl+:108,info:108,prompt:109,spinner:108,pointer:168,marker:168'
+  let $FZF_DEFAULT_OPTS=' --layout=reverse --border --margin=1,4'
+  "--color fg:242,bg:233,hl:65,fg+:15,bg+:234,hl+:108,info:108,prompt:109,spinner:108,pointer:168,marker:168'
   function! FloatingFZF()
     let width = float2nr(&columns * 0.9)
     let height = float2nr(&lines * 0.6)

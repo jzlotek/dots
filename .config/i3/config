@@ -37,8 +37,8 @@ for_window [instance="dropdown_*"] move position center
 # 	modifier None
 # }
 
+exec --no-startup-id wal -R
 exec_always --no-startup-id $HOME/.local/bin/launch_polybar &
-exec --no-startup-id (wal -i $HOME/.config/wall.png)
 # exec --no-startup-id shuf_wallpaper
 
 # #---Basic Bindings---# #
