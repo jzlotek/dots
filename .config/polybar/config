@@ -55,7 +55,7 @@ font-3 = Symbola:pixelsize=9;1
 ; Other modules: xkeyboard filesystem xbacklight backlight-acpi cpu memory temperature powermenu weather
 modules-left = i3 bspwm xwindow
 ;modules-center =
-modules-right = mpd updates volume temperature weather mutt-wizard wlan vpn eth battery date
+modules-right = mpd kernel updates volume temperature weather mutt-wizard wlan vpn eth battery date
 
 tray-position = right
 tray-padding = 0
@@ -263,6 +263,12 @@ type = custom/script
 exec = ~/.config/polybar/scripts/vpn-connected
 internal = 5
 format-underline = ${colors.blue}
+
+[module/kernel]
+type = custom/script
+exec = uname -r
+internal = once
+format-underline = ${colors.red}
 
 [module/date]
 type = internal/date
