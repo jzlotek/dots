@@ -42,6 +42,7 @@ call plug#begin('~/.config/nvim/plugged')
   Plug 'Xuyuanp/nerdtree-git-plugin'
   Plug 'junegunn/goyo.vim'
   Plug 'tpope/vim-fugitive'
+  Plug 'fatih/vim-go', { 'do': ':GoUpdateBinaries' }
 
   " Themes and extra
   Plug 'vim-airline/vim-airline-themes'
@@ -55,8 +56,18 @@ call plug#end()
 
 
 " Plugin Options
-let g:go_fmt_command = 'goimports'
+
+set autowrite
+let g:go_fmt_autosave = 1
+let g:go_fmt_command = "goimports"
+let g:go_highlight_types = 1
+let g:go_highlight_fields = 1
+let g:go_highlight_functions = 1
+let g:go_highlight_function_calls = 1
+autocmd BufNewFile,BufRead *.go setlocal noexpandtab tabstop=4 shiftwidth=4
+
 let g:NERDTreeGitStatusWithFlags = 1
+let g:tex_flavor = "latex"
 
 let g:ale_sign_error = '⤫'
 let g:ale_sign_warning = '⚠'
