@@ -15,7 +15,7 @@ endif
 
 if ! filereadable(expand('~/.config/coc/extensions/package.json'))
   echo "Downloading coc plugins..."
-  autocmd VimEnter * CocInstall coc-tsserver coc-json coc-python coc-vetur coc-go coc-highlight coc-pairs coc-go
+  autocmd VimEnter * CocInstall coc-tsserver coc-json coc-python coc-vetur coc-go coc-highlight coc-pairs
 endif
 
 " leader
@@ -23,7 +23,7 @@ let mapleader = ','
 
 " vim-plug
 call plug#begin('~/.config/nvim/plugged')
-  " auto-complete-esque section
+  " auto-complete section
   Plug 'dense-analysis/ale'
   Plug 'neoclide/coc.nvim', {'branch': 'release'}
   Plug 'sheerun/vim-polyglot'
@@ -32,7 +32,6 @@ call plug#begin('~/.config/nvim/plugged')
   Plug 'junegunn/fzf.vim'
   Plug 'lervag/vimtex'
   Plug 'posva/vim-vue'
-
 
   " File systems and git
   Plug 'airblade/vim-gitgutter'
@@ -45,6 +44,7 @@ call plug#begin('~/.config/nvim/plugged')
   Plug 'fatih/vim-go', { 'do': ':GoUpdateBinaries' }
 
   " Themes and extra
+  Plug 'stillwwater/vim-nebula'
   Plug 'vim-airline/vim-airline-themes'
   Plug 'vim-airline/vim-airline'
   Plug 'ryanoasis/powerline-extra-symbols'
@@ -80,8 +80,6 @@ let g:ale_fixers = {
 \ }
 let g:ale_fix_on_save = 1
 
-"let g:airline_theme='deus'
-let g:airline_theme='wal'
 let g:airline#extensions#ale#enabled = 1
 let g:airline#extensions#coc#enabled = 1
 let g:airline#extensions#vimtex#enabled = 1
@@ -169,8 +167,20 @@ set nocompatible
 filetype plugin on
 syntax on
 highlight EndOfBuffer ctermfg=black ctermbg=black
-"colorscheme Tomorrow-Night
-colorscheme wal
+
+if has('termguicolors')
+  set termguicolors
+endif
+
+set background=dark
+colorscheme nebula
+let g:airline_theme='base16_spacemacs'
+
+if !executable('wal')
+  colorscheme wal
+  let g:airline_theme='wal'
+endif
+
 set number
 set relativenumber
 
