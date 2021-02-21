@@ -8,6 +8,8 @@ export PATH="$PATH:$(du "$HOME/.local/bin/" | cut -f2 | tr '\n' ':' | sed 's/:*$
 export LARBSWM="$(cat ~/.local/share/larbs/wm 2>/dev/null)" &&
 	[ "$LARBSWM" = "dwm" ] || export LARBSWM="i3"
 
+[ -f ~/.config/aliasrc ] && source ~/.config/aliasrc
+
 # Default programs:
 export EDITOR="nvim"
 export TERMINAL="st"

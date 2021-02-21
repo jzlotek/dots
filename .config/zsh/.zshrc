@@ -1,7 +1,14 @@
 # Luke's config for the Zoomer Shell
+(cat ~/.cache/wal/sequences)
+
+export ZSH="/home/john/.oh-my-zsh"
+ZSH_THEME="linuxonly"
+DISABLE_UPDATE_PROMPT="true"
+plugins=(git)
+source $ZSH/oh-my-zsh.sh
 
 autoload -U colors && colors
-PS1="%B%{$fg[red]%}[%{$fg[yellow]%}%n%{$fg[green]%}@%{$fg[blue]%}%M %{$fg[magenta]%}%~%{$fg[red]%}]%{$reset_color%}$%b "
+# PS1="%B%{$fg[red]%}[%{$fg[yellow]%}%n%{$fg[green]%}@%{$fg[blue]%}%M %{$fg[magenta]%}%~%{$fg[red]%}]%{$reset_color%}$%b "
 
 # Load aliases and shortcuts if existent.
 [ -f "$HOME/.config/shortcutrc" ] && source "$HOME/.config/shortcutrc"
@@ -72,4 +79,6 @@ eval $(thefuck --alias)
 
 # Load zsh-syntax-highlighting; should be last.
 source /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh 2>/dev/null
+command -v kubectl >/dev/null && source <(kubectl completion zsh)
+command -v helm >/dev/null && source <(helm completion zsh)
 
