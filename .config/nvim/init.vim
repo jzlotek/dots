@@ -15,7 +15,7 @@ endif
 
 if ! filereadable(expand('~/.config/coc/extensions/package.json'))
   echo "Downloading coc plugins..."
-  autocmd VimEnter * CocInstall coc-tsserver coc-json coc-python coc-vetur coc-go coc-highlight coc-pairs coc-go
+  autocmd VimEnter * CocInstall coc-tsserver coc-json coc-python coc-vetur coc-go coc-highlight coc-pairs
 endif
 
 " leader
@@ -23,7 +23,7 @@ let mapleader = ','
 
 " vim-plug
 call plug#begin('~/.config/nvim/plugged')
-  " auto-complete-esque section
+  " auto-complete section
   Plug 'dense-analysis/ale'
   Plug 'neoclide/coc.nvim', {'branch': 'release'}
   Plug 'sheerun/vim-polyglot'
@@ -33,30 +33,40 @@ call plug#begin('~/.config/nvim/plugged')
   Plug 'lervag/vimtex'
   Plug 'posva/vim-vue'
 
-
   " File systems and git
   Plug 'airblade/vim-gitgutter'
   Plug 'tpope/vim-fugitive'
   Plug 'jreybert/vimagit'
   Plug 'scrooloose/nerdtree', { 'on': 'NERDTreeToggle' }
-  Plug 'Xuyuanp/nerdtree-git-plugin'
+  Plug 'xuyuanp/nerdtree-git-plugin'
   Plug 'junegunn/goyo.vim'
   Plug 'tpope/vim-fugitive'
+  Plug 'fatih/vim-go', { 'do': ':GoUpdateBinaries' }
 
   " Themes and extra
+  Plug 'stillwwater/vim-nebula'
+  Plug 'nightsense/snow'
   Plug 'vim-airline/vim-airline-themes'
   Plug 'vim-airline/vim-airline'
   Plug 'ryanoasis/powerline-extra-symbols'
-  Plug 'flazz/vim-colorschemes'
-  Plug 'dylanaraps/wal.vim'
   Plug 'ryanoasis/vim-devicons'
   Plug 'yggdroot/indentline'
 call plug#end()
 
 
 " Plugin Options
-let g:go_fmt_command = 'goimports'
+
+set autowrite
+let g:go_fmt_autosave = 1
+let g:go_fmt_command = "goimports"
+let g:go_highlight_types = 1
+let g:go_highlight_fields = 1
+let g:go_highlight_functions = 1
+let g:go_highlight_function_calls = 1
+autocmd BufNewFile,BufRead *.go setlocal noexpandtab tabstop=4 shiftwidth=4
+
 let g:NERDTreeGitStatusWithFlags = 1
+let g:tex_flavor = "latex"
 
 let g:ale_sign_error = '⤫'
 let g:ale_sign_warning = '⚠'
@@ -69,8 +79,6 @@ let g:ale_fixers = {
 \ }
 let g:ale_fix_on_save = 1
 
-"let g:airline_theme='deus'
-let g:airline_theme='wal'
 let g:airline#extensions#ale#enabled = 1
 let g:airline#extensions#coc#enabled = 1
 let g:airline#extensions#vimtex#enabled = 1
@@ -158,8 +166,15 @@ set nocompatible
 filetype plugin on
 syntax on
 highlight EndOfBuffer ctermfg=black ctermbg=black
-"colorscheme Tomorrow-Night
-colorscheme wal
+
+if has('termguicolors')
+  set termguicolors
+endif
+
+set background=dark
+colorscheme snow
+let g:airline_theme='snow_dark'
+
 set number
 set relativenumber
 
@@ -265,9 +280,9 @@ if has('nvim')
     let left = (&columns - width) / 2
     let opts = {'relative': 'editor', 'row': top, 'col': left, 'width': width, 'height': height, 'style': 'minimal'}
 
-    let top = "╭" . repeat("-", width - 2) . "╮"
+    let top = "╭" . repeat("─", width - 2) . "╮"
     let mid = "│" . repeat(" ", width - 2) . "│"
-    let bot = "╰" . repeat("-", width - 2) . "╯"
+    let bot = "╰" . repeat("─", width - 2) . "╯"
     let lines = [top] + repeat([mid], height - 2) + [bot]
     let s:buf = nvim_create_buf(v:false, v:true)
     call nvim_buf_set_lines(s:buf, 0, -1, v:true, lines)
