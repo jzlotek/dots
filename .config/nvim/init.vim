@@ -19,7 +19,7 @@ if ! filereadable(expand('~/.config/coc/extensions/package.json'))
 endif
 
 " leader
-let mapleader = ','
+let mapleader = ' '
 
 " vim-plug
 call plug#begin('~/.config/nvim/plugged')
@@ -46,6 +46,8 @@ call plug#begin('~/.config/nvim/plugged')
   " Themes and extra
   Plug 'stillwwater/vim-nebula'
   Plug 'nightsense/snow'
+  Plug 'morhetz/gruvbox'
+  Plug 'pineapplegiant/spaceduck'
   Plug 'vim-airline/vim-airline-themes'
   Plug 'vim-airline/vim-airline'
   Plug 'ryanoasis/powerline-extra-symbols'
@@ -156,6 +158,11 @@ set softtabstop=2
 
 " Coc Configuration
 inoremap <silent><expr> <c-space> coc#refresh()
+nmap <silent> gd <Plug>(coc-definition)
+nmap <silent> gy <Plug>(coc-type-definition)
+nmap <silent> gi <Plug>(coc-implementation)
+nmap <silent> gr <Plug>(coc-references)
+
 autocmd CursorHold * silent call CocActionAsync('highlight')
 set updatetime=300
 set signcolumn=yes
@@ -172,8 +179,8 @@ if has('termguicolors')
 endif
 
 set background=dark
-colorscheme snow
-let g:airline_theme='snow_dark'
+colorscheme gruvbox
+let g:airline_theme='gruvbox'
 
 set number
 set relativenumber
