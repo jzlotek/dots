@@ -1,0 +1,17 @@
+#!/bin/sh
+# author: John Zlotek
+# usage:  Detect VPN and print status.
+#         Requires ifconfig to run.
+# params: optional vpn-connceted [interface_name]
+
+set -e
+
+IFACE=vpn0
+
+[ $# -eq 1 ] && IFACE=$1
+
+command -v ifconfig > /dev/null
+
+ifconfig $IFACE 2> /dev/null
+
+[ $(ifconfig $IFACE | grep UP | wc -l) -eq 1 ] && echo " $IFACE" || echo "輦"

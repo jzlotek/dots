@@ -1,0 +1,7 @@
+#!/usr/bin/env sh
+
+DIR=$HOME/Pictures/wallpapers
+pape=$(find $DIR | shuf -n1)
+wal -i "$pape"
+setbg "$pape"
+
