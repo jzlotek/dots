@@ -42,10 +42,18 @@ call plug#begin('~/.config/nvim/plugged')
   Plug 'junegunn/goyo.vim'
   Plug 'tpope/vim-fugitive'
   Plug 'fatih/vim-go', { 'do': ':GoUpdateBinaries' }
+  Plug 'nvim-treesitter/nvim-treesitter', {'do': ':TSUpdate'}
+
+  Plug 'nvim-lua/popup.nvim'
+  Plug 'nvim-lua/plenary.nvim'
+  Plug 'nvim-telescope/telescope.nvim'
 
   " Themes and extra
   Plug 'stillwwater/vim-nebula'
   Plug 'nightsense/snow'
+  Plug 'ghifarit53/tokyonight-vim'
+  Plug 'morhetz/gruvbox'
+  Plug 'ntk148v/vim-horizon'
   Plug 'vim-airline/vim-airline-themes'
   Plug 'vim-airline/vim-airline'
   Plug 'ryanoasis/powerline-extra-symbols'
@@ -101,13 +109,31 @@ let g:indentLine_char_list = ['|', '¦', '┆', '┊']
 let g:indentLine_leadingSpaceEnabled = 1
 let g:indentLine_leadingSpaceChar = '.'
 
+" Telescope
+lua << EOF
+local actions = require('telescope.actions')
+require('telescope').setup{
+  defaults = {
+    mappings = {
+      i = {
+        -- etc
+        ["<esc>"] = actions.close,
+      },
+      n = {
+        -- etc
+        ["<esc>"] = actions.close,
+      },
+    },
+  }
+}
+EOF
 
-nnoremap <C-p> :Files<CR>
-nnoremap <Leader>b :Buffers<CR>
+nnoremap <C-p> :Telescope find_files<CR>
+nnoremap <Leader>b :Telescope buffers<CR>
 nnoremap <Leader>h :History<CR>
-nnoremap <Leader>t :BTags<CR>
-nnoremap <Leader>T :Tags<CR>
-nnoremap <Leader>l :Lines<CR>
+nnoremap <Leader>t :Telescope symbols<CR>
+nnoremap <Leader>T :Telescope tags<CR>
+nnoremap <Leader>g :Telecope live_grep<CR>
 
 
 let g:gutentags_cache_dir = expand('/tmp/.cache/vim/ctags/')
@@ -172,8 +198,8 @@ if has('termguicolors')
 endif
 
 set background=dark
-colorscheme snow
-let g:airline_theme='snow_dark'
+colorscheme gruvbox
+let g:airline_theme='gruvbox'
 
 set number
 set relativenumber
