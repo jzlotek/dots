@@ -1,0 +1,26 @@
+#!/bin/bash
+
+TMPDIR=$(mktemp -d)
+
+function install_yay() {
+	pushd $TMPDIR >/dev/null
+	git clone https://aur.archlinux.org/yay.git
+	pushd yay >/dev/null
+	makepkg -si
+	popd >/dev/null
+	popd >/dev/null
+}
+
+sudo pacman -Sy
+sudo pacman -S --needed rsync git openssh --noconfirm
+
+command -v yay >/dev/null || install_yay
+
+[ -d home ] && rsync -r home/ $HOME/
+[ -d config ] && rsync -r config/ $HOME/.config
+
+sudo pacman -S --needed neovim dmenu dunst tmux ttf-hack-nerd --noconfirm
+
+[ ! -d $HOME/.config/tmux/plugins/tpm ] && git clone https://github.com/tmux-plugins/tpm $HOME/.config/tmux/plugins/tpm
+
+rm -r $TMPDIR
