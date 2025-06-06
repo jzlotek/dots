@@ -12,15 +12,19 @@ function install_yay() {
 }
 
 sudo pacman -Sy
-sudo pacman -S --needed rsync git openssh --noconfirm
+sudo pacman -S --needed git --noconfirm
 
 command -v yay >/dev/null || install_yay
+
+yay -S --needed rsync git openssh unzip --noconfirm
 
 [ -d home ] && rsync -r home/ $HOME/
 [ -d config ] && rsync -r config/ $HOME/.config
 
-sudo pacman -S --needed neovim dmenu dunst tmux ttf-hack-nerd --noconfirm
+yay -S --needed neovim dmenu dunst tmux ttf-hack-nerd --noconfirm
 
 [ ! -d $HOME/.config/tmux/plugins/tpm ] && git clone https://github.com/tmux-plugins/tpm $HOME/.config/tmux/plugins/tpm
 
 rm -r $TMPDIR
+
+yay -S --needed hyprland wofi kitty waybar hyprpaper hyprlock xdg-desktop-portal-hyprland dunst pipewire wireplumber --noconfirm
