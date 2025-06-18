@@ -329,7 +329,7 @@ vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist)
 -- LSP settings.
 --  This function gets run when an LSP connects to a particular buffer.
 vim.api.nvim_create_autocmd("LspAttach", {
-  group = vim.api.vim_create_augroup("main-lsp-attach", {clear = true}),
+  group = vim.api.nvim_create_augroup("main-lsp-attach", {clear = true}),
   callback = function(event)
     local map = function(keys, func, desc, mode)
       mode = mode or 'n'
@@ -365,7 +365,7 @@ vim.api.nvim_create_autocmd("LspAttach", {
     end, { desc = 'Format current buffer with LSP' })
 
     local client = vim.lsp.get_client_by_id(event.data.client_id)
-    if client and client_supports_method(client, vim.lsp.protocol.Methods.textDocument_documentHighlight, event.buf) then
+    if client and client:supports_method(client, vim.lsp.protocol.Methods.textDocument_documentHighlight, event.buf) then
       local highlight_augroup = vim.api.nvim_create_augroup('main-lsp-highlight', { clear = false })
       vim.api.nvim_create_autocmd({ 'CursorHold', 'CursorHoldI' }, {
         buffer = event.buf,
