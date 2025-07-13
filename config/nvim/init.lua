@@ -143,73 +143,81 @@ require("lazy").setup({
         dependencies = {
           { "nvim-treesitter/nvim-treesitter-textobjects" },
         },
-        opts = {
-          ensure_installed = { "c", "cpp", "go", "lua", "python", "rust", "typescript", "vim", "vimdoc" },
-          highlight = {
-            enable = true,
-            additional_vim_regex_highlighting = { "python" },
-          },
-          indent = { enable = true, disable = { "python" } },
-          incremental_selection = {
-            enable = true,
-            keymaps = {
-              init_selection = "<c-space>",
-              node_incremental = "<c-space>",
-              scope_incremental = "<c-s>",
-              node_decremental = "<c-backspace>",
-            },
-          },
-          textobjects = {
-            select = {
+        config = function()
+          require'nvim-treesitter.configs'.setup {
+            ensure_installed = { "c", "cpp", "go", "lua", "python", "rust", "typescript", "vim", "vimdoc" },
+            highlight = {
               enable = true,
-              lookahead = true, -- Automatically jump forward to textobj, similar to targets.vim
+              additional_vim_regex_highlighting = false,
+            },
+            indent = { enable = true, disable = { "python" } },
+            disable = function(lang, buf)
+                local max_filesize = 100 * 1024 -- 100 KB
+                local ok, stats = pcall(vim.loop.fs_stat, vim.api.nvim_buf_get_name(buf))
+                if ok and stats and stats.size > max_filesize then
+                    return true
+                end
+            end,
+            incremental_selection = {
+              enable = true,
               keymaps = {
-                -- You can use the capture groups defined in textobjects.scm
-                ["aa"] = "@parameter.outer",
-                ["ia"] = "@parameter.inner",
-                ["af"] = "@function.outer",
-                ["if"] = "@function.inner",
-                ["ac"] = "@class.outer",
-                ["ic"] = "@class.inner",
+                init_selection = "<c-space>",
+                node_incremental = "<c-space>",
+                scope_incremental = "<c-s>",
+                node_decremental = "<c-backspace>",
               },
             },
-            move = {
-              enable = true,
-              set_jumps = true, -- whether to set jumps in the jumplist
-              goto_next_start = {
-                ["]m"] = "@function.outer",
-                ["]]"] = "@class.outer",
+            textobjects = {
+              select = {
+                enable = true,
+                lookahead = true, -- Automatically jump forward to textobj, similar to targets.vim
+                keymaps = {
+                  -- You can use the capture groups defined in textobjects.scm
+                  ["aa"] = "@parameter.outer",
+                  ["ia"] = "@parameter.inner",
+                  ["af"] = "@function.outer",
+                  ["if"] = "@function.inner",
+                  ["ac"] = "@class.outer",
+                  ["ic"] = "@class.inner",
+                },
               },
-              goto_next_end = {
-                ["]M"] = "@function.outer",
-                ["]["] = "@class.outer",
+              move = {
+                enable = true,
+                set_jumps = true, -- whether to set jumps in the jumplist
+                goto_next_start = {
+                  ["]m"] = "@function.outer",
+                  ["]]"] = "@class.outer",
+                },
+                goto_next_end = {
+                  ["]M"] = "@function.outer",
+                  ["]["] = "@class.outer",
+                },
+                goto_previous_start = {
+                  ["[m"] = "@function.outer",
+                  ["[["] = "@class.outer",
+                },
+                goto_previous_end = {
+                  ["[M"] = "@function.outer",
+                  ["[]"] = "@class.outer",
+                },
               },
-              goto_previous_start = {
-                ["[m"] = "@function.outer",
-                ["[["] = "@class.outer",
-              },
-              goto_previous_end = {
-                ["[M"] = "@function.outer",
-                ["[]"] = "@class.outer",
+              swap = {
+                enable = true,
+                swap_next = {
+                  ["<leader>a"] = "@parameter.inner",
+                },
+                swap_previous = {
+                  ["<leader>A"] = "@parameter.inner",
+                },
               },
             },
-            swap = {
-              enable = true,
-              swap_next = {
-                ["<leader>a"] = "@parameter.inner",
-              },
-              swap_previous = {
-                ["<leader>A"] = "@parameter.inner",
-              },
-            },
-          },
-        },
+          }
+      end
       },
 
       "tpope/vim-rhubarb",
       "lewis6991/gitsigns.nvim",
 
-      "navarasu/onedark.nvim", -- Theme inspired by Atom
       "rose-pine/neovim",
       {
         'akinsho/bufferline.nvim',
@@ -223,6 +231,7 @@ require("lazy").setup({
       "osyo-manga/vim-brightest",
       { "lukas-reineke/indent-blankline.nvim", main = "ibl" }, -- Add indentation guides even on blank lines
       "numToStr/Comment.nvim", -- "gc" to comment visual regions/lines
+      { 'folke/todo-comments.nvim', event = 'VimEnter', dependencies = { 'nvim-lua/plenary.nvim' }, opts = { signs = false } },
       "tpope/vim-sleuth", -- Detect tabstop and shiftwidth automatically
 
       -- Fuzzy Finder (files, lsp, etc)
@@ -235,11 +244,63 @@ require("lazy").setup({
           {
             "nvim-telescope/telescope-fzf-native.nvim",
             build = "make",
+            cond = function() return vim.fn.executable 'make' == 1 end,
             config = function()
               require("telescope").load_extension("fzf")
             end,
+            'nvim-telescope/telescope-ui-select.nvim',
+            'nvim-tree/nvim-web-devicons',
           },
         },
+        config = function()
+          -- [[ Configure Telescope ]]
+          -- See `:help telescope` and `:help telescope.setup()`
+          local actions = require("telescope.actions")
+          pcall(require('telescope').load_extension, 'ui-select')
+          pcall(require('telescope').load_extension, 'fzf')
+          require("telescope").setup({
+            defaults = {
+              mappings = {
+                i = {
+                  ["<C-u>"] = false,
+                  ["<C-d>"] = false,
+                  ["<esc>"] = actions.close,
+                },
+                n = {
+                  ["<esc>"] = actions.close,
+                },
+              },
+            },
+            extensions = {
+              ['ui-select'] = {
+                require('telescope.themes').get_dropdown(),
+              },
+            },
+          })
+
+          -- See `:help telescope.builtin`
+          vim.keymap.set("n", "<leader>?", require("telescope.builtin").oldfiles, { desc = "[?] Find recently opened files" })
+          vim.keymap.set("n", "<leader><space>", require("telescope.builtin").buffers, { desc = "[ ] Find existing buffers" })
+          vim.keymap.set("n", "<leader>/", function()
+            -- You can pass additional configuration to telescope to change theme, layout, etc.
+            require("telescope.builtin").current_buffer_fuzzy_find(require("telescope.themes").get_dropdown({
+              winblend = 10,
+              previewer = false,
+            }))
+          end, { desc = "[/] Fuzzily search in current buffer]" })
+
+          vim.keymap.set("n", "<leader>sf", require("telescope.builtin").find_files, { desc = "[S]earch [F]iles" })
+          vim.keymap.set("n", "<leader>sh", require("telescope.builtin").help_tags, { desc = "[S]earch [H]elp" })
+          vim.keymap.set("n", "<leader>sw", require("telescope.builtin").grep_string, { desc = "[S]earch current [W]ord" })
+          vim.keymap.set("n", "<leader>sg", require("telescope.builtin").live_grep, { desc = "[S]earch by [G]rep" })
+          vim.keymap.set("n", "<leader>sd", require("telescope.builtin").diagnostics, { desc = "[S]earch [D]iagnostics" })
+
+          -- Diagnostic keymaps
+          vim.keymap.set("n", "[d", vim.diagnostic.goto_prev)
+          vim.keymap.set("n", "]d", vim.diagnostic.goto_next)
+          vim.keymap.set("n", "<leader>e", vim.diagnostic.open_float)
+          vim.keymap.set("n", "<leader>q", vim.diagnostic.setloclist)
+      end
       },
 
       {
@@ -266,7 +327,6 @@ require("lazy").setup({
       },
     })
 
-require("telescope").load_extension("fzf")
 
 -- [[ Setting options ]]
 -- See `:help vim.o`
@@ -391,46 +451,6 @@ require("gitsigns").setup({
   },
 })
 
--- [[ Configure Telescope ]]
--- See `:help telescope` and `:help telescope.setup()`
-local actions = require("telescope.actions")
-require("telescope").setup({
-  defaults = {
-    mappings = {
-      i = {
-        ["<C-u>"] = false,
-        ["<C-d>"] = false,
-        ["<esc>"] = actions.close,
-      },
-      n = {
-        ["<esc>"] = actions.close,
-      },
-    },
-  },
-})
-
--- See `:help telescope.builtin`
-vim.keymap.set("n", "<leader>?", require("telescope.builtin").oldfiles, { desc = "[?] Find recently opened files" })
-vim.keymap.set("n", "<leader><space>", require("telescope.builtin").buffers, { desc = "[ ] Find existing buffers" })
-vim.keymap.set("n", "<leader>/", function()
-  -- You can pass additional configuration to telescope to change theme, layout, etc.
-  require("telescope.builtin").current_buffer_fuzzy_find(require("telescope.themes").get_dropdown({
-    winblend = 10,
-    previewer = false,
-  }))
-end, { desc = "[/] Fuzzily search in current buffer]" })
-
-vim.keymap.set("n", "<leader>sf", require("telescope.builtin").find_files, { desc = "[S]earch [F]iles" })
-vim.keymap.set("n", "<leader>sh", require("telescope.builtin").help_tags, { desc = "[S]earch [H]elp" })
-vim.keymap.set("n", "<leader>sw", require("telescope.builtin").grep_string, { desc = "[S]earch current [W]ord" })
-vim.keymap.set("n", "<leader>sg", require("telescope.builtin").live_grep, { desc = "[S]earch by [G]rep" })
-vim.keymap.set("n", "<leader>sd", require("telescope.builtin").diagnostics, { desc = "[S]earch [D]iagnostics" })
-
--- Diagnostic keymaps
-vim.keymap.set("n", "[d", vim.diagnostic.goto_prev)
-vim.keymap.set("n", "]d", vim.diagnostic.goto_next)
-vim.keymap.set("n", "<leader>e", vim.diagnostic.open_float)
-vim.keymap.set("n", "<leader>q", vim.diagnostic.setloclist)
 
 -- LSP settings.
 --  This function gets run when an LSP connects to a particular buffer.
