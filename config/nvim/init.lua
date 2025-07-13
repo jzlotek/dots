@@ -487,6 +487,33 @@ vim.api.nvim_create_autocmd("LspAttach", {
       print(vim.inspect(vim.lsp.buf.list_workspace_folders()))
     end, "[W]orkspace [L]ist Folders")
 
+    vim.diagnostic.config {
+      severity_sort = true,
+      float = { border = 'rounded', source = 'if_many' },
+      underline = { severity = vim.diagnostic.severity.ERROR },
+      signs = {
+        text = {
+          [vim.diagnostic.severity.ERROR] = '󰅚 ',
+          [vim.diagnostic.severity.WARN] = '󰀪 ',
+          [vim.diagnostic.severity.INFO] = '󰋽 ',
+          [vim.diagnostic.severity.HINT] = '󰌶 ',
+        },
+      },
+      virtual_text = {
+        source = 'if_many',
+        spacing = 2,
+        format = function(diagnostic)
+          local diagnostic_message = {
+            [vim.diagnostic.severity.ERROR] = diagnostic.message,
+            [vim.diagnostic.severity.WARN] = diagnostic.message,
+            [vim.diagnostic.severity.INFO] = diagnostic.message,
+            [vim.diagnostic.severity.HINT] = diagnostic.message,
+          }
+          return diagnostic_message[diagnostic.severity]
+        end,
+      },
+    }
+
     -- Create a command `:Format` local to the LSP buffer
     -- vim.api.nvim_buf_create_user_command(buffer, 'Format', function(_) vim.lsp.buf.format() end, { desc = 'Format current buffer with LSP' })
 
@@ -536,8 +563,9 @@ vim.api.nvim_create_autocmd("LspAttach", {
   -- Setup mason so it can manage external tooling
   require("mason").setup()
 
-  local ensure_installed = { "c", "cpp", "go", "lua", "python", "rust", "typescript", "vim", "vimdoc" }
-  require("mason-tool-installer").setup({ ensure_installed = ensure_installed })
+  require("mason-tool-installer").setup{
+    ensure_installed = { "clangd", "gopls", "lua-language-server", "pyright", "rust-analyzer", "vale", "ruff" }
+  }
 
   require("mason-lspconfig").setup({
     ensure_installed = {}, -- explicitly set to an empty table (Kickstart populates installs via mason-tool-installer)
