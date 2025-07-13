@@ -40,6 +40,8 @@ require("lazy").setup({
       -- Allows extra capabilities provided by blink.cmp
       "saghen/blink.cmp",
     },
+    config = function()
+    end,
   },
   { -- Autocompletion
     'saghen/blink.cmp',
@@ -144,7 +146,7 @@ require("lazy").setup({
           { "nvim-treesitter/nvim-treesitter-textobjects" },
         },
         config = function()
-          require'nvim-treesitter.configs'.setup {
+          require('nvim-treesitter.configs').setup {
             ensure_installed = { "c", "cpp", "go", "lua", "python", "rust", "typescript", "vim", "vimdoc" },
             highlight = {
               enable = true,
@@ -534,6 +536,7 @@ vim.api.nvim_create_autocmd("LspAttach", {
   -- Setup mason so it can manage external tooling
   require("mason").setup()
 
+  local ensure_installed = { "c", "cpp", "go", "lua", "python", "rust", "typescript", "vim", "vimdoc" }
   require("mason-tool-installer").setup({ ensure_installed = ensure_installed })
 
   require("mason-lspconfig").setup({
