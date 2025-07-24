@@ -1,3 +1,11 @@
+-- [[ Basic Keymaps ]]
+-- Set <space> as the leader key
+-- See `:help mapleader`
+--  NOTE: Must happen before plugins are required (otherwise wrong leader will be used)
+vim.g.mapleader = " "
+vim.g.maplocalleader = " "
+vim.o.termguicolors = true
+
 -- Install lazy
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
 if not vim.loop.fs_stat(lazypath) then
@@ -283,9 +291,9 @@ require("lazy").setup({
 
 -- [[ Setting options ]]
 -- See `:help vim.o`
-
 -- Set highlight on search
 vim.o.hlsearch = false
+vim.o.lazyredraw = true
 
 -- Make line numbers default
 vim.wo.number = true
@@ -309,19 +317,12 @@ vim.o.updatetime = 250
 vim.wo.signcolumn = "yes"
 
 -- Set colorscheme
-vim.o.termguicolors = true
 vim.cmd([[set background=dark]])
 vim.cmd([[colorscheme rose-pine]])
 
 -- Set completeopt to have a better completion experience
 vim.o.completeopt = "menuone,noselect"
 
--- [[ Basic Keymaps ]]
--- Set <space> as the leader key
--- See `:help mapleader`
---  NOTE: Must happen before plugins are required (otherwise wrong leader will be used)
-vim.g.mapleader = " "
-vim.g.maplocalleader = " "
 
 vim.keymap.set("", "<C-h>", "<C-w>h")
 vim.keymap.set("", "<C-j>", "<C-w>j")
@@ -487,6 +488,7 @@ vim.api.nvim_create_autocmd("LspAttach", {
 
     vim.diagnostic.config {
       severity_sort = true,
+      virtual_lines = true,
       float = { border = 'rounded', source = 'if_many' },
       underline = { severity = vim.diagnostic.severity.ERROR },
       signs = {
