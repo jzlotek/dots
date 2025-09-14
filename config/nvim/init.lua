@@ -564,7 +564,7 @@ vim.api.nvim_create_autocmd("LspAttach", {
   require("mason").setup()
 
   require("mason-tool-installer").setup{
-    ensure_installed = { "clangd", "gopls", "lua-language-server", "pyright", "rust-analyzer", "vale", "ruff" }
+    ensure_installed = { "clangd", "gopls", "lua-language-server", "basedpyright", "rust-analyzer", "vale" }
   }
 
   require("mason-lspconfig").setup({
