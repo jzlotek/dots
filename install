@@ -15,7 +15,7 @@ sudo pacman -Sy
 sudo pacman -S --needed git --noconfirm
 command -v yay >/dev/null || install_yay
 yay -S --needed rsync git openssh unzip --noconfirm
-yay -S --needed neovim dmenu dunst tmux ttf-hack-nerd --noconfirm
+yay -S --needed neovim dmenu dunst tmux ttf-hack-nerd wezterm-git --noconfirm
 yay -S --needed hyprland wofi kitty waybar hyprpaper hyprlock xdg-desktop-portal-hyprland dunst pipewire wireplumber hyprpolkitagent --noconfirm
 
 [ -d home ] && rsync -r home/ $HOME/
