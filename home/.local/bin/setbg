@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+
+[ -z $1 ] && exit 1
+
+CONFIG_DIR="${XDG_CONFIG_DIR:-$HOME/.config}"
+WALLPAPER_FILE="${XDG_CONFIG_DIR:-$HOME/.config}/wallpaper.png"
+
+command -v magick >/dev/null || exit 0
+
+magick "${1}" "${WALLPAPER_FILE}"
+
+# generate colorschemes
+if command -v colorz >/dev/null; then
+	if command -v colorz >/dev/null && [ -f "${WALLPAPER_FILE}" ]; then
+		tmpfile=$(mktemp)
+		active=$(colorz "${WALLPAPER_FILE}" --no-preview | tr " " "\n" | sed 's/#//g' | awk '{if (NR == 2) {print $1}}')
+		cat > "${tmpfile}" <<-EOF
+	general {
+	    col.active_border = rgb($active)
+	}
+		EOF
+		mv "${tmpfile}" "${CONFIG_DIR}/hypr/colors.conf"
+	fi
+	touch "${CONFIG_DIR}/hypr/colors.conf"
+fi
+
+if [ ! -z "$(ps aux | grep hyprpaper)" ]; then
+	killall hyprpaper
+	nohup hyprpaper >/dev/null & 
+fi

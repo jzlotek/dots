@@ -1,27 +1,137 @@
-#!/bin/bash
+#!/usr/bin/env bash
+#      _ _____  ____        _
+#     | |__  / |  _ \  ___ | |_ ___
+#  _  | | / /  | | | |/ _ \| __/ __|
+# | |_| |/ /_  | |_| | (_) | |_\__ \
+#  \___//____| |____/ \___/ \__|___/
+#
+# Use at your own risk :)
+#
+# This will overwrite all the files in config and home that
+# are in this git repo. While the config management portion of
+# this script can be run on most Posix-compliant systems, the
+# bootstrapping (-s flag) is only made for Arch Linux (btw)
+# with Hyprland as its window manager.
+#
+# If you wish to use the dots as-is, make sure you have git, rsync
+# and curl installed to your system
+#
+# Built with <3 (and because I have done this too many times)
+# - jzlotek
 
 TMPDIR=$(mktemp -d)
+CONFIG_DIR="${XDG_CONFIG_DIR:-$HOME/.config}"
+CWD=$(pwd)
+
+function cleanup() {
+	rm -r $TMPDIR
+}
+function restore_cwd() {
+	if [ $(pwd) != $CWD ]; then
+		cd $CWD
+	fi
+}
+trap cleanup EXIT INT TERM
+trap restore_cwd EXIT INT TERM
+
+
+print_help() {
+	cat <<-EOF
+	install dotfiles
+
+	-s requires sudo. sync packages (Arch only right now btw)
+	-h print this message and exit
+	EOF
+}
+
+function check_pkg_installed() {
+	if command -v "$1" >/dev/null; then
+		printf "\e[32m%s found\n\e[0m" "$1"
+	else
+		printf "\e[31m%s NOT found\n\e[0m" "$1"
+		exit 1
+	fi
+}
 
 function install_yay() {
-	pushd $TMPDIR >/dev/null
+	command -v yay >/dev/null && return
+	check_pkg_installed git
+	pushd "${TMPDIR}" >/dev/null
 	git clone https://aur.archlinux.org/yay.git
 	pushd yay >/dev/null
 	makepkg -si
-	popd >/dev/null
-	popd >/dev/null
+	popd >/dev/null popd >/dev/null
 }
 
-sudo pacman -Sy
-sudo pacman -S --needed git --noconfirm
-command -v yay >/dev/null || install_yay
-yay -S --needed rsync git openssh unzip --noconfirm
-yay -S --needed neovim dmenu dunst tmux ttf-hack-nerd wezterm-git --noconfirm
-yay -S --needed hyprland wofi kitty waybar hyprpaper hyprlock xdg-desktop-portal-hyprland dunst pipewire wireplumber hyprpolkitagent --noconfirm
+function install_ohmyzsh() {
+	ZSH="${CONFIG_DIR}/oh-my-zsh"
+	([ ! -d "${ZSH}" ] && sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)")
+}
+
+function install_tmux() {
+	[ ! -d "${CONFIG_DIR}/tmux/plugins/tpm" ] && git clone https://github.com/tmux-plugins/tpm "${CONFIG_DIR}/tmux/plugins/tpm"
+	ln -sf "${CONFIG_DIR}/tmux/tmux.conf" $HOME/.tmux.conf
+}
+
+SYNC="false"
+while getopts "sh" opt; do
+	case $opt in
+		s)
+			SYNC="true"
+			;;
+		h)
+			print_help
+			exit 0
+			;;
+		*)
+			exit 1
+			;;
+	esac
+done
+
+
+function sync_packages() {
+	sudo pacman -Sy
+	sudo pacman -S --needed git --noconfirm
+	install_yay
+	yay -S --needed \
+		rsync \
+		git \
+		openssh \
+		unzip \
+		neovim \
+		dmenu \
+		dunst \
+		tmux \
+		ttf-hack-nerd \
+		wezterm-git \
+		hyprland \
+		wofi \
+		kitty \
+		waybar \
+		hyprpaper \
+		hyprlock \
+		xdg-desktop-portal-hyprland \
+		dunst \
+		pipewire \
+		wireplumber \
+		hyprpolkitagent \
+		colorz \
+		--noconfirm >/dev/null
+}
+
+
+[ $SYNC = "true" ] && sync_packages
+check_pkg_installed git
+check_pkg_installed rsync
+check_pkg_installed curl
+
+install_ohmyzsh
+
+install_tmux
+
+echo setting background
+home/.local/bin/setbg config/hypr/wallpaper.png
 
 [ -d home ] && rsync -r home/ $HOME/
-[ -d config ] && rsync -r config/ $HOME/.config
-[ ! -d $HOME/.config/tmux/plugins/tpm ] && git clone https://github.com/tmux-plugins/tpm $HOME/.config/tmux/plugins/tpm
-ln -sf $HOME/.config/tmux/tmux.conf $HOME/.tmux.conf
-
-rm -r $TMPDIR
-
+[ -d config ] && rsync -r config/ "${CONFIG_DIR}"

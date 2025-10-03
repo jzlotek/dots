@@ -1,8 +1,18 @@
-export ZSH="$HOME/.oh-my-zsh"
+# If not running interactively, don't do anything
+[[ $- != *i* ]] && return
+
+export ZSH="$HOME/.config/oh-my-zsh"
 
 ZSH_THEME="ys"
 
 zstyle ':omz:update' mode auto      # update automatically without asking
+
+autoload -U compinit
+zstyle ':completion:*' menu select
+zmodload zsh/complist
+compinit
+
+_comp_options+=(globdots)
 
 # Uncomment the following line to change how often to auto-update (in days).
 # zstyle ':omz:update' frequency 13
@@ -15,5 +25,3 @@ zstyle ':omz:update' mode auto      # update automatically without asking
 plugins=(git)
 
 source $ZSH/oh-my-zsh.sh
-
-[ -f "$HOME/.config/aliasrc" ] && source "$HOME/.config/aliasrc"

@@ -48,3 +48,4 @@ alias \
 	weath="less -S ~/.local/share/weatherreport" \
 
 export PATH="/usr/local/bin/node:$PATH"
+export PATH="$HOME/.local/bin:$PATH"
