@@ -26,5 +26,5 @@ fi
 
 if [ ! -z "$(ps aux | grep hyprpaper)" ]; then
 	killall hyprpaper
-	nohup hyprpaper >/dev/null & 
+	nohup >/dev/null hyprpaper 2>&1 &
 fi

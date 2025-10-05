@@ -1,11 +1,16 @@
 # If not running interactively, don't do anything
 [[ $- != *i* ]] && return
 
-export ZSH="$HOME/.config/oh-my-zsh"
+if [ -z "$_PROFILE_SOURCED" ]; then
+    source ~/.profile
+fi
+
+export ZSH="${XDG_CONFIG_HOME}/oh-my-zsh"
 
 ZSH_THEME="ys"
 
-zstyle ':omz:update' mode auto      # update automatically without asking
+# update automatically without asking
+zstyle ':omz:update' mode auto
 
 autoload -U compinit
 zstyle ':completion:*' menu select
@@ -22,6 +27,8 @@ _comp_options+=(globdots)
 # Custom plugins may be added to $ZSH_CUSTOM/plugins/
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
-plugins=(git)
+plugins=(git vi-mode)
 
 source $ZSH/oh-my-zsh.sh
+command -v fzf > /dev/null && source <(fzf --zsh)
+

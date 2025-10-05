@@ -97,6 +97,7 @@ function sync_packages() {
 	yay -S --needed \
 		rsync \
 		git \
+		fzf \
 		openssh \
 		unzip \
 		neovim \
@@ -130,8 +131,7 @@ install_ohmyzsh
 
 install_tmux
 
-echo setting background
 home/.local/bin/setbg config/hypr/wallpaper.png
 
-[ -d home ] && rsync -r home/ $HOME/
-[ -d config ] && rsync -r config/ "${CONFIG_DIR}"
+[ -d home ] && rsync -rl home/ $HOME/
+[ -d config ] && rsync -rl config/ "${CONFIG_DIR}"
