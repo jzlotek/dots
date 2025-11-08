@@ -1,0 +1,48 @@
+[global]
+follow = mouse
+monitor = 0
+enable_posix_regex = true
+frame_width = 1
+frame_color = "#b4befe"
+separator_color= frame
+highlight = "#74c7ec"
+background = "#1e1e2e"
+foreground = "#cdd6f4"
+corner_radius = 5
+progress_bar_corner_radius = 5
+corners = top-left,bottom
+progress_bar_corners = top-left,bottom-right
+offset = (15, 25)
+gap_size = 5
+format = "<b>󰁕 %a</b>\n%s\n<i>%b</i>"
+
+browser = /usr/bin/xdg-open
+always_run_script = true
+title = Dunst
+class = Dunst
+ignore_dbusclose = false
+force_xwayland = false
+force_xinerama = false
+mouse_left_click = context, close_current
+mouse_middle_click = do_action, close_current
+mouse_right_click = close_all
+
+[experimental]
+per_monitor_dpi = true
+
+[urgency_low]
+foreground = "#a6e3a1"
+frame_color = "#a6e3a1"
+timeout = 5
+# default_icon = "~/.config/dunst/icons/bell-badge-low.svg"
+
+[urgency_normal]
+foreground = "#74c7ec"
+frame_color = "#74c7ec"
+timeout = 5
+# default_icon = "~/.config/dunst/icons/bell-badge.svg"
+
+[urgency_critical]
+foreground = "#f38ba8"
+frame_color = "#f38ba8"
+# default_icon = "~/.config/dunst/icons/alert-decagram.svg"

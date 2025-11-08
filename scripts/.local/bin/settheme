@@ -1,15 +1,14 @@
 #!/usr/bin/env bash
-# sets hyprpaper background and colorscheme
-# does exaclty what you think it does
-
-[ -z $1 ] && exit 1
 
 CONFIG_DIR="${XDG_CONFIG_DIR:-$HOME/.config}"
 WALLPAPER_FILE="${XDG_CONFIG_DIR:-$HOME/.config}/wallpaper.png"
 
-command -v magick >/dev/null || exit 0
-
-magick "${1}" "${WALLPAPER_FILE}"
+function restart_prog() {
+	if [ ! -z "$(pidof $1)" ]; then
+		killall $1
+		nohup >/dev/null $1 2>&1 &
+	fi
+}
 
 # generate colorschemes
 if command -v colorz >/dev/null && [ -f "${WALLPAPER_FILE}" ]; then
@@ -24,7 +23,4 @@ EOF
 	touch "${CONFIG_DIR}/hypr/colors.conf"
 fi
 
-if [ ! -z "$(ps aux | grep hyprpaper)" ]; then
-	killall hyprpaper
-	nohup >/dev/null hyprpaper 2>&1 &
-fi
+restart_prog dunst

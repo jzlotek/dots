@@ -39,7 +39,10 @@ print_help() {
 	cat <<-EOF
 	install dotfiles
 
+	By default will only install TUI app configs
+
 	-s requires sudo. sync packages (Arch only right now btw)
+	-f full install. Installes configs used for desktop env
 	-h print this message and exit
 	EOF
 }
@@ -60,7 +63,8 @@ function install_yay() {
 	git clone https://aur.archlinux.org/yay.git
 	pushd yay >/dev/null
 	makepkg -si
-	popd >/dev/null popd >/dev/null
+	popd >/dev/null
+	popd >/dev/null
 }
 
 function install_ohmyzsh() {
@@ -69,15 +73,19 @@ function install_ohmyzsh() {
 }
 
 function install_tmux() {
-	[ ! -d "${CONFIG_DIR}/tmux/plugins/tpm" ] && git clone https://github.com/tmux-plugins/tpm "${CONFIG_DIR}/tmux/plugins/tpm"
+	[ ! -d "${CONFIG_DIR}/tpm/plugins/tpm" ] && git clone https://github.com/tmux-plugins/tpm "${CONFIG_DIR}/tpm/plugins/tpm"
 	ln -sf "${CONFIG_DIR}/tmux/tmux.conf" $HOME/.tmux.conf
 }
 
 SYNC="false"
-while getopts "sh" opt; do
+FULL="false"
+while getopts "shf" opt; do
 	case $opt in
 		s)
 			SYNC="true"
+			;;
+		f)
+			FULL="true"
 			;;
 		h)
 			print_help
@@ -118,6 +126,7 @@ function sync_packages() {
 		wireplumber \
 		hyprpolkitagent \
 		colorz \
+		stow \
 		--noconfirm >/dev/null
 }
 
@@ -126,12 +135,15 @@ function sync_packages() {
 check_pkg_installed git
 check_pkg_installed rsync
 check_pkg_installed curl
+check_pkg_installed stow
 
 install_ohmyzsh
 
 install_tmux
 
-home/.local/bin/setbg config/hypr/wallpaper.png
+stow base nvim tmux scripts -t "${HOME}"
 
-[ -d home ] && rsync -rl home/ $HOME/
-[ -d config ] && rsync -rl config/ "${CONFIG_DIR}"
+if [ "${FULL}" = "true" ]; then
+	stow wm -t "${HOME}"
+	base/.local/bin/setbg wm/.config/hypr/wallpaper.png
+fi

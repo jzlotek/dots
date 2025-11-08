@@ -1,0 +1,105 @@
+#!/usr/bin/env bash
+
+CACHE_DIR="${HOME}/.local/share/weather"
+TIMESTAMP_FILE="${CACHE_DIR}"/last_loaded
+
+FORCE="false"
+TEMP_UNIT="F"
+
+while getopts "fm" opt; do
+	case $opt in
+		f)
+			FORCE="true"
+			;;
+		m)
+			TEMP_UNIT="C"
+			;;
+		*)
+			;;
+	esac
+done
+THERMOMETER="🌡"
+
+WEATHER_SYMBOL='{
+    "Unknown": "✨",
+    "Clear": "🌔",
+    "Cloudy": "☁️",
+    "Overcast": "☁️",
+    "Fog": "🌫",
+    "HeavyRain": "🌧",
+    "HeavyShowers": "🌧",
+    "HeavySnow": "❄️",
+    "HeavySnowShowers": "❄️",
+    "LightRain": "🌦",
+    "LightShowers": "🌦",
+    "LightSleet": "🌧",
+    "LightSleetShowers": "🌧",
+    "LightSnow": "🌨",
+    "LightSnowShowers": "🌨",
+    "PartlyCloudy": "⛅️",
+    "Partly cloudy": "⛅️",
+    "Partly Cloudy": "⛅️",
+    "Sunny": "☀️",
+    "ThunderyHeavyRain": "🌩",
+    "ThunderyShowers": "⛈",
+    "ThunderySnowShowers": "⛈",
+    "VeryCloudy": "☁️"
+}'
+
+MOON_PHASES='{
+"New Moon": "🌑",
+"Waxing Crecent": "🌒",
+"First Quarter": "🌓",
+"Waxing Gibbous": "🌔",
+"Full Moon": "🌕",
+"Waning Gibbous": "🌖",
+"Last Quarter": "🌗",
+"Waning Crecent": "🌘"
+}'
+
+[ -f "${TIMESTAMP_FILE}" ] && ts=$(cat "${TIMESTAMP_FILE}") || ts=0
+
+now=$(date "+%s")
+
+if (( now > (ts + 3600) )) || [ "${FORCE}" != "false" ]; then
+
+	curl -sL 'wttr.in/?&format=j1' --create-dirs --output "${CACHE_DIR}/report.json" &
+	curl -sL 'wttr.in/?F'--create-dirs --output "${CACHE_DIR}/report.txt" &
+
+	wait
+
+	echo -e "${now}" > "${TIMESTAMP_FILE}"
+fi
+
+text=$(jq --argjson symbols "${WEATHER_SYMBOL}" -rj "
+.current_condition[0] | \$symbols[.weatherDesc[0].value],\" \",\"${THERMOMETER} \",.temp_${TEMP_UNIT},\"°${TEMP_UNIT}\n\"
+" < "${CACHE_DIR}/report.json")
+
+jq --argjson symbols "${WEATHER_SYMBOL}" --argjson moon "${MOON_PHASES}" -rj "
+def strip(x): x | gsub(\"^[[:space:]]\";\"\") | gsub(\"[[:space:]]$\";\"\");
+def bold(x): x | \"<b>\",x,\"</b>\";
+
+.weather[] | (
+	.date,\"\n\",
+	\"High: \",.maxtemp${TEMP_UNIT},\"°${TEMP_UNIT}\n\",
+	\"Low: \",.mintemp${TEMP_UNIT},\"°${TEMP_UNIT}\n\",
+	(
+		.astronomy[0] | \"Sunset: \",.sunset,\"\n\",\$moon[strip(.moon_phase)],\" \",strip(.moon_phase),\"\n\"
+	),
+	\"Hourly: \",
+	(
+		.hourly[] | (
+			.time
+			,\" \"
+			,strip(.weatherDesc[0].value)
+			,\" \"
+			,\$symbols[strip(.weatherDesc[0].value)]
+			,\"\n\"
+		)
+	),
+	\"\n\"
+)
+" < "${CACHE_DIR}/report.json"
+
+jq -r -c -n --arg text "${text}" --arg tooltip "${tooltip}" '$ARGS.named'
+

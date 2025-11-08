@@ -1,10 +1,3 @@
-# If not running interactively, don't do anything
-[[ $- != *i* ]] && return
-
-if [ -z "$_PROFILE_SOURCED" ]; then
-    source ~/.profile
-fi
-
 export ZSH="${XDG_CONFIG_HOME}/oh-my-zsh"
 
 ZSH_THEME="ys"
@@ -31,4 +24,5 @@ plugins=(git vi-mode)
 
 source $ZSH/oh-my-zsh.sh
 command -v fzf > /dev/null && source <(fzf --zsh)
+[ -f $HOME/.config/aliasrc ] && source "$HOME/.config/aliasrc"
 
