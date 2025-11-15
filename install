@@ -113,6 +113,7 @@ function sync_packages() {
 		dunst \
 		tmux \
 		ttf-hack-nerd \
+		noto-fonts-emoji \
 		wezterm-git \
 		hyprland \
 		wofi \
@@ -145,5 +146,5 @@ stow base nvim tmux scripts -t "${HOME}"
 
 if [ "${FULL}" = "true" ]; then
 	stow wm -t "${HOME}"
-	base/.local/bin/setbg wm/.config/hypr/wallpaper.png
+	scripts/.local/bin/setbg wm/.config/hypr/wallpaper.png
 fi
