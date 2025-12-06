@@ -1,0 +1,5 @@
+font-family = SauceCodePro NF
+theme = Neutron
+shell-integration-features = ssh-env
+window-decoration = none
+
