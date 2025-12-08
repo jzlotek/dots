@@ -130,7 +130,7 @@ MOON_PHASES='{
 "Full Moon": "🌕",
 "Waning Gibbous": "🌖",
 "Last Quarter": "🌗",
-"Waning Crecent": "🌘"
+"Waning Crescent": "🌘"
 }'
 
 [ -f "${TIMESTAMP_FILE}" ] && ts=$(cat "${TIMESTAMP_FILE}") || ts=0
@@ -149,13 +149,13 @@ fi
 
 [ ! -f "${CACHE_DIR}/report.txt" ] && echo "report was not downloaded" 1>&2 && exit 1
 
-[ "${SHOW}" = "true" ] && cat "${CACHE_DIR}/report.txt" && exit 0 
+[ "${SHOW}" = "true" ] && cat "${CACHE_DIR}/report.txt" && exit 0
 
 [ ! -f "${CACHE_DIR}/report.json" ] && echo "report was not downloaded" 1>&2 && exit 1
 
 text=$(jq --argjson symbols "${WEATHER_SYMBOL}" --argjson codemap "${CODE_TO_DESC}" -rj "
 def strip(x): x | gsub(\"^[[:space:]]\";\"\") | gsub(\"[[:space:]]$\";\"\");
-	.current_condition[0] | 
+	.current_condition[0] |
 		\$symbols[\$codemap[strip(.weatherCode)]],\" \"
 		,\" ${THERMOMETER} \"
 		,.temp_${TEMP_UNIT}

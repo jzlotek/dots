@@ -20,8 +20,13 @@
 # - jzlotek
 
 TMPDIR=$(mktemp -d)
+DOTS_REPO="${DOTS_REPO:-git@github.com:jzlotek/dots.git}"
 CONFIG_DIR="${XDG_CONFIG_DIR:-$HOME/.config}"
+INSTALL_DIR="${XDG_DATA_HOME:-$HOME/.local/share}"
 CWD=$(pwd)
+SYNC="false"
+FULL="false"
+BOOTSTRAP="false"
 
 function cleanup() {
 	rm -r $TMPDIR
@@ -56,6 +61,13 @@ function check_pkg_installed() {
 	fi
 }
 
+function bootstrap() {
+	check_pkg_installed git > /dev/null
+	BOOTSTRAP_DIR="${INSTALL_DIR}/dots"
+	[ ! -d "${BOOTSTRAP_DIR}/.git" ] && git clone "${DOTS_REPO}" "${BOOTSTRAP_DIR}"
+	exec "${BOOTSTRAP_DIR}/install" $(echo "${@}" | sed 's/-b//g')
+}
+
 function install_yay() {
 	command -v yay >/dev/null && return
 	check_pkg_installed git
@@ -65,6 +77,21 @@ function install_yay() {
 	makepkg -si
 	popd >/dev/null
 	popd >/dev/null
+}
+
+function setup_chaotic_aur() {
+	sudo pacman-key --recv-key 3056513887B78AEB --keyserver keyserver.ubuntu.com
+	sudo pacman-key --lsign-key 3056513887B78AEB
+	sudo pacman -U 'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-keyring.pkg.tar.zst'
+	sudo pacman -U 'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-mirrorlist.pkg.tar.zst'
+
+	if ! grep -q "/etc/pacman.d/chaotic-mirrorlist" "/etc/pacman.conf"; then
+		sudo cat >> /etc/pacman.conf <<-EOF
+[chaotic-aur]
+Include = /etc/pacman.d/chaotic-mirrorlist
+EOF
+	fi
+
 }
 
 function install_ohmyzsh() {
@@ -77,12 +104,36 @@ function install_tmux() {
 	ln -sf "${CONFIG_DIR}/tmux/tmux.conf" $HOME/.tmux.conf
 }
 
-SYNC="false"
-FULL="false"
-while getopts "shf" opt; do
+function sync_packages() {
+	sudo pacman -Sy
+	sudo pacman -S --needed git --noconfirm
+	install_yay
+	tail packages.csv -n+2 | cut -d , -f 2 | uniq | while read line; do
+		repo=""
+		[ ! -z "${line}" ] && repo="--repo ${line}"
+		packages="$(tail packages.csv -n+2 | grep -E ",${line}$" | cut -d , -f 1 | uniq | tr "\n" " ")"
+		[ -z "${packages}" ] && continue
+		yay -S --needed --noconfirm >/dev/null $repo $packages
+	done
+}
+function install_dotfiles() {
+	stow base nvim tmux scripts -t "${HOME}"
+
+	if [ "${FULL}" = "true" ]; then
+		stow wm -t "${HOME}"
+		scripts/.local/bin/setbg wm/.config/hypr/wallpaper.png
+	fi
+}
+
+orig_args=$@
+
+while getopts "shfb" opt; do
 	case $opt in
 		s)
 			SYNC="true"
+			;;
+		b)
+			BOOTSTRAP="true"
 			;;
 		f)
 			FULL="true"
@@ -98,53 +149,13 @@ while getopts "shf" opt; do
 done
 
 
-function sync_packages() {
-	sudo pacman -Sy
-	sudo pacman -S --needed git --noconfirm
-	install_yay
-	yay -S --needed \
-		rsync \
-		git \
-		fzf \
-		openssh \
-		unzip \
-		neovim \
-		dmenu \
-		dunst \
-		tmux \
-		ttf-hack-nerd \
-		noto-fonts-emoji \
-		wezterm-git \
-		hyprland \
-		wofi \
-		kitty \
-		waybar \
-		hyprpaper \
-		hyprlock \
-		xdg-desktop-portal-hyprland \
-		dunst \
-		pipewire \
-		wireplumber \
-		hyprpolkitagent \
-		colorz \
-		stow \
-		--noconfirm >/dev/null
-}
-
-
+[ "${BOOTSTRAP}" = "true" ] && bootstrap $orig_args
 [ $SYNC = "true" ] && sync_packages
+
 check_pkg_installed git
-check_pkg_installed rsync
 check_pkg_installed curl
 check_pkg_installed stow
 
 install_ohmyzsh
-
 install_tmux
-
-stow base nvim tmux scripts -t "${HOME}"
-
-if [ "${FULL}" = "true" ]; then
-	stow wm -t "${HOME}"
-	scripts/.local/bin/setbg wm/.config/hypr/wallpaper.png
-fi
+install_dotfiles
