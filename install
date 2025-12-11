@@ -113,7 +113,10 @@ function sync_packages() {
 		dunst \
 		tmux \
 		ttf-hack-nerd \
+		noto-fonts \
+		noto-fonts-cjk \
 		noto-fonts-emoji \
+		noto-fonts-extra \
 		wezterm-git \
 		hyprland \
 		wofi \
