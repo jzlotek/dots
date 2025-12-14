@@ -13,14 +13,10 @@ function restart_prog() {
 # generate colorschemes
 if command -v colorz >/dev/null && [ -f "${WALLPAPER_FILE}" ]; then
 	tmpfile=$(mktemp)
-	active=$(colorz "${WALLPAPER_FILE}" --no-preview | tr " " "\n" | sed 's/#//g' | awk '{if (NR == 2) {print $1}}')
-	cat > "${tmpfile}" <<-EOF
-general {
-    col.active_border = rgb($active)
-}
-EOF
-	mv "${tmpfile}" "${CONFIG_DIR}/hypr/colors.conf"
-	touch "${CONFIG_DIR}/hypr/colors.conf"
+	colorz -n 16 ~/.config/wallpaper.png --no-preview | sed 's/#//g' | awk '{ print "$bg" (NR-1) " = rgb("$1")" "\n" "$fg" (NR - 1) " = rgb("$2")"}' > "${tmpfile}"
+	mv "${tmpfile}" "${CONFIG_DIR}/hypr/theme.conf"
+	touch "${CONFIG_DIR}/hypr/theme.conf"
+	touch "${CONFIG_DIR}/hypr/hyprland.conf"
 fi
 
 restart_prog dunst

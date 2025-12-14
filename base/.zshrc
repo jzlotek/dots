@@ -1,4 +1,4 @@
-export ZSH="${XDG_CONFIG_HOME}/oh-my-zsh"
+export ZSH="${XDG_CONFIG_HOME:-$HOME/.config}/oh-my-zsh"
 
 ZSH_THEME="ys"
 
