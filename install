@@ -23,7 +23,8 @@ set -u
 CWD=$(pwd)
 
 TMPDIR=$(mktemp -d)
-GIT_REPO_RAW_FILE_URL="${GIT_REPO_RAW_FILE_URL:-https://raw.githubusercontent.com/jzlotek/dots/refs/heads/master}"
+BRANCH="${BRANCH:-master}"
+GIT_REPO_RAW_FILE_URL="${GIT_REPO_RAW_FILE_URL:-https://raw.githubusercontent.com/jzlotek/dots/refs/heads/$BRANCH}"
 DOTS_REPO="${DOTS_REPO:-git@github.com:jzlotek/dots.git}"
 CONFIG_DIR="${XDG_CONFIG_DIR:-$HOME/.config}"
 INSTALL_DIR="${XDG_DATA_HOME:-$HOME/.local/share}"
@@ -82,10 +83,11 @@ function setup_chaotic_aur() {
 	sudo pacman -U 'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-mirrorlist.pkg.tar.zst' --noconfirm
 
 	if ! grep -q "/etc/pacman.d/chaotic-mirrorlist" "/etc/pacman.conf"; then
-		sudo cat >> /etc/pacman.conf <<-EOF
+		sudo bash -c 'cat >> /etc/pacman.conf <<-EOF
 [chaotic-aur]
 Include = /etc/pacman.d/chaotic-mirrorlist
 EOF
+'
 	fi
 
 }
@@ -144,7 +146,7 @@ function install_dotfiles() {
 	echo "Running 'chezmoi $*'" >&2
 	"$chezmoi" init https://github.com/jzlotek/dots.git
 	"$chezmoi" cd
-	git checkout -b testing
+	git checkout $BRANCH
 	"$chezmoi" apply --force
 }
 

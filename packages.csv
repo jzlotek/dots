@@ -1,6 +1,7 @@
 git
 rsync
 fzf
+zsh
 chezmoi
 openssh
 unzip
