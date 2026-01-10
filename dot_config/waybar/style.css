@@ -1,0 +1,95 @@
+@define-color bg_h rgba(29, 32, 33, 1);
+@define-color bg rgba(40, 40, 40, 1);
+@define-color bg_s rgba(50, 48, 47, 1);
+@define-color bg1 rgba(60, 56, 54, 1);
+@define-color bg2 rgba(80, 73, 69, 1);
+@define-color bg3 rgba(102, 92, 84, 1);
+@define-color bg4 rgba(124, 111, 100, 1);
+
+@define-color fg rgba(235, 219, 178, 1);
+@define-color fg1 rgba(235, 219, 178, 1);
+@define-color fg2 rgba(213, 196, 161, 1);
+@define-color fg3 rgba(189, 174, 147, 1);
+@define-color fg4 rgba(168, 153, 132, 1);
+
+@define-color red rgba(204, 36, 18, 1);
+@define-color green rgba(152, 151, 26, 1);
+@define-color yellow rgba(215, 153, 33, 1);
+@define-color blue rgba(69, 133, 136, 1);
+@define-color purple rgba(177, 98, 134, 1);
+@define-color aqua rgba(104, 157, 106, 1);
+@define-color orange rgba(214, 93, 14, 1);
+@define-color gray rgba(168, 153, 132, 1);
+
+* {
+  background: none;
+  border-radius: 0;
+  border: none;
+  box-shadow: none;
+  color: @fg1;
+  font-family: 'JetbrainsMono Nerd Font Propo',FontAwesome, Roboto, Helvetica, Arial, sans-serif;
+  font-size: 12px;
+  transition: all 100ms;
+}
+
+window {
+  background-color: @bg;
+}
+
+
+#workspaces button:hover,
+button.active,
+.modules-center *:hover,
+.modules-right *:hover {
+  background-color: @orange;
+  box-shadow: inherit;
+  text-shadow: inherit;
+}
+
+#workspaces button:hover *,
+button.active *,
+.modules-center *:hover,
+.modules-right *:hover {
+  color: @fg2;
+  font-weight: 900;
+}
+
+.modules-center *:hover *,
+.modules-right *:hover * {
+  background-color: @red;
+}
+
+tooltip {
+  background-color: @bg;
+}
+
+button.urgent {
+  background-color: @red;
+}
+
+#workspaces > *,
+.modules-center > * > *,
+.modules-right > * > * {
+  padding: 0.125rem 0.5rem;
+}
+
+.modules-center {
+  background-color: @bg;
+}
+
+.modules-right {
+  background-color: @bg;
+}
+
+#battery.charging, #battery.plugged {
+  background-color: @green;
+}
+
+#battery.warning:not(.charging) {
+  background-color: @yellow;
+  color: @bg_h;
+}
+
+#battery.critical:not(.charging) {
+  background-color: @red;
+}

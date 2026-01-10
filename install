@@ -18,15 +18,18 @@
 #
 # Built with <3 (and because I have done this too many times)
 # - jzlotek
+set -u
+
+CWD=$(pwd)
 
 TMPDIR=$(mktemp -d)
+GIT_REPO_RAW_FILE_URL="${GIT_REPO_RAW_FILE_URL:-https://raw.githubusercontent.com/jzlotek/dots/refs/heads/master}"
 DOTS_REPO="${DOTS_REPO:-git@github.com:jzlotek/dots.git}"
 CONFIG_DIR="${XDG_CONFIG_DIR:-$HOME/.config}"
 INSTALL_DIR="${XDG_DATA_HOME:-$HOME/.local/share}"
-CWD=$(pwd)
 SYNC="false"
 FULL="false"
-BOOTSTRAP="false"
+DIRECTORY=""
 
 function cleanup() {
 	rm -r $TMPDIR
@@ -61,13 +64,6 @@ function check_pkg_installed() {
 	fi
 }
 
-function bootstrap() {
-	check_pkg_installed git > /dev/null
-	BOOTSTRAP_DIR="${INSTALL_DIR}/dots"
-	[ ! -d "${BOOTSTRAP_DIR}/.git" ] && git clone "${DOTS_REPO}" "${BOOTSTRAP_DIR}"
-	exec "${BOOTSTRAP_DIR}/install" $(echo "${@}" | sed 's/-b//g')
-}
-
 function install_yay() {
 	command -v yay >/dev/null && return
 	check_pkg_installed git
@@ -82,8 +78,8 @@ function install_yay() {
 function setup_chaotic_aur() {
 	sudo pacman-key --recv-key 3056513887B78AEB --keyserver keyserver.ubuntu.com
 	sudo pacman-key --lsign-key 3056513887B78AEB
-	sudo pacman -U 'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-keyring.pkg.tar.zst'
-	sudo pacman -U 'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-mirrorlist.pkg.tar.zst'
+	sudo pacman -U 'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-keyring.pkg.tar.zst' --noconfirm
+	sudo pacman -U 'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-mirrorlist.pkg.tar.zst' --noconfirm
 
 	if ! grep -q "/etc/pacman.d/chaotic-mirrorlist" "/etc/pacman.conf"; then
 		sudo cat >> /etc/pacman.conf <<-EOF
@@ -106,37 +102,64 @@ function install_tmux() {
 
 function sync_packages() {
 	sudo pacman -Sy
-	sudo pacman -S --needed git --noconfirm
+	sudo pacman -S --needed git curl --noconfirm
 	install_yay
-	tail packages.csv -n+2 | cut -d , -f 2 | uniq | while read line; do
-		repo=""
-		[ ! -z "${line}" ] && repo="--repo ${line}"
-		packages="$(tail packages.csv -n+2 | grep -E ",${line}$" | cut -d , -f 1 | uniq | tr "\n" " ")"
-		[ -z "${packages}" ] && continue
-		yay -S --needed --noconfirm >/dev/null $repo $packages
-	done
-}
-function install_dotfiles() {
-	stow base nvim tmux scripts -t "${HOME}"
 
-	if [ "${FULL}" = "true" ]; then
-		stow wm -t "${HOME}"
-		scripts/.local/bin/setbg wm/.config/hypr/wallpaper.png
+	packages_file=packages.csv
+	if [ ! -f "${packages_file}" ]; then
+		packages_file=$(mktemp /tmp/packages.csv.XXX)
+		curl -o "${packages_file}" -L0 "${GIT_REPO_RAW_FILE_URL}/packages.csv"
 	fi
+	yay -S --needed --noconfirm >/dev/null $(sed '/^\S*#/d' "${packages_file}" | tr "\n" " " < "${packages_file}")
+}
+
+function install_dotfiles() {
+	if [ "${FULL}" = "true" ]; then
+		stow wm -t "${HOME}" --dotfiles
+		# dot_local/bin/setbg wm/dot-config/hypr/wallpaper.png
+	fi
+	set -eu
+
+	if ! chezmoi="$(command -v chezmoi)"; then
+		bin_dir="${HOME}/.local/bin"
+		chezmoi="${bin_dir}/chezmoi"
+		echo "Installing chezmoi to '${chezmoi}'" >&2
+		if command -v curl >/dev/null; then
+			chezmoi_install_script="$(curl -fsSL get.chezmoi.io)"
+		elif command -v wget >/dev/null; then
+			chezmoi_install_script="$(wget -qO- get.chezmoi.io)"
+		else
+			echo "To install chezmoi, you must have curl or wget installed." >&2
+			exit 1
+		fi
+		sh -c "${chezmoi_install_script}" -- -b "${bin_dir}"
+		unset chezmoi_install_script bin_dir
+	fi
+
+	# POSIX way to get script's dir: https://stackoverflow.com/a/29834779/12156188
+	script_dir="$(cd -P -- "$(dirname -- "$(command -v -- "$0")")" && pwd -P)"
+
+	set -- init --apply --source="${script_dir}"
+
+	echo "Running 'chezmoi $*'" >&2
+	"$chezmoi" init https://github.com/jzlotek/dots.git
+	"$chezmoi" cd
+	git checkout -b testing
+	"$chezmoi" apply --force
 }
 
 orig_args=$@
 
-while getopts "shfb" opt; do
+while getopts d:shf opt; do
 	case $opt in
 		s)
 			SYNC="true"
 			;;
-		b)
-			BOOTSTRAP="true"
-			;;
 		f)
 			FULL="true"
+			;;
+		d)
+			DIRECTORY=$(readlink -f "${OPTARG}")
 			;;
 		h)
 			print_help
@@ -148,9 +171,7 @@ while getopts "shfb" opt; do
 	esac
 done
 
-
-[ "${BOOTSTRAP}" = "true" ] && bootstrap $orig_args
-[ $SYNC = "true" ] && sync_packages
+[ $SYNC = "true" ] && setup_chaotic_aur && sync_packages
 
 check_pkg_installed git
 check_pkg_installed curl
@@ -158,4 +179,7 @@ check_pkg_installed stow
 
 install_ohmyzsh
 install_tmux
+
 install_dotfiles
+
+echo "Success"

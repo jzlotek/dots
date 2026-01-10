@@ -1,0 +1,192 @@
+#!/usr/bin/env sh
+
+CACHE_DIR="${HOME}/.local/share/weather"
+TIMESTAMP_FILE="${CACHE_DIR}"/last_loaded
+
+FORCE="false"
+SHOW="false"
+TEMP_UNIT="F"
+
+help() {
+	cat <<-EOF
+wttr
+gathers local weather data from wttr.in and formats it into
+what hyprbar requires. Also does some caching to make sure we
+are nice to wttr.in's webserver
+
+Requires curl and jq to work. Other similar implementations
+were bloated and used python + requests to do what ~200 lines
+of POSIX shell could do (and do it faster).
+
+-f force reload
+-m use metric output instead of imperial
+-h show this message and exit
+EOF
+}
+
+while getopts "fmhs" opt; do
+	case $opt in
+		f)
+			FORCE="true"
+			;;
+		m)
+			TEMP_UNIT="C"
+			;;
+		s)
+			SHOW="true"
+			;;
+		h)
+			help && exit 0;;
+		*)
+			help && exit 1;;
+	esac
+done
+THERMOMETER="🌡"
+
+WEATHER_SYMBOL='{
+    "Unknown": "✨",
+    "Clear": "🌔",
+    "Cloudy": "☁️",
+    "Overcast": "☁️",
+    "Fog": "🌫",
+    "Mist": "🌫",
+    "HeavyRain": "🌧",
+    "HeavyShowers": "🌧",
+    "HeavySnow": "❄️",
+    "HeavySnowShowers": "❄️",
+    "LightRain": "🌦",
+    "LightShowers": "🌦",
+    "LightSleet": "🌧",
+    "LightSleetShowers": "🌧",
+    "LightSnow": "🌨",
+    "LightSnowShowers": "🌨",
+    "PartlyCloudy": "⛅️",
+    "Partly cloudy": "⛅️",
+    "Partly Cloudy": "⛅️",
+    "Sunny": "☀️",
+    "ThunderyHeavyRain": "🌩",
+    "ThunderyShowers": "⛈",
+    "ThunderySnowShowers": "⛈",
+    "VeryCloudy": "☁️"
+}'
+
+
+CODE_TO_DESC='{
+    "113": "Sunny",
+    "116": "PartlyCloudy",
+    "119": "Cloudy",
+    "122": "VeryCloudy",
+    "143": "Fog",
+    "176": "LightShowers",
+    "179": "LightSleetShowers",
+    "182": "LightSleet",
+    "185": "LightSleet",
+    "200": "ThunderyShowers",
+    "227": "LightSnow",
+    "230": "HeavySnow",
+    "248": "Fog",
+    "260": "Fog",
+    "263": "LightShowers",
+    "266": "LightRain",
+    "281": "LightSleet",
+    "284": "LightSleet",
+    "293": "LightRain",
+    "296": "LightRain",
+    "299": "HeavyShowers",
+    "302": "HeavyRain",
+    "305": "HeavyShowers",
+    "308": "HeavyRain",
+    "311": "LightSleet",
+    "314": "LightSleet",
+    "317": "LightSleet",
+    "320": "LightSnow",
+    "323": "LightSnowShowers",
+    "326": "LightSnowShowers",
+    "329": "HeavySnow",
+    "332": "HeavySnow",
+    "335": "HeavySnowShowers",
+    "338": "HeavySnow",
+    "350": "LightSleet",
+    "353": "LightShowers",
+    "356": "HeavyShowers",
+    "359": "HeavyRain",
+    "362": "LightSleetShowers",
+    "365": "LightSleetShowers",
+    "368": "LightSnowShowers",
+    "371": "HeavySnowShowers",
+    "374": "LightSleetShowers",
+    "377": "LightSleet",
+    "386": "ThunderyShowers",
+    "389": "ThunderyHeavyRain",
+    "392": "ThunderySnowShowers",
+    "395": "HeavySnowShowers"
+}'
+
+MOON_PHASES='{
+"New Moon": "🌑",
+"Waxing Crecent": "🌒",
+"First Quarter": "🌓",
+"Waxing Gibbous": "🌔",
+"Full Moon": "🌕",
+"Waning Gibbous": "🌖",
+"Last Quarter": "🌗",
+"Waning Crescent": "🌘"
+}'
+
+[ -f "${TIMESTAMP_FILE}" ] && ts=$(cat "${TIMESTAMP_FILE}") || ts=0
+
+now=$(date "+%s")
+
+if [ "${FORCE}" != "false" ] || [ "${now}" -gt $((ts + 3600)) ]; then
+
+	curl -sL 'wttr.in/?&format=j1' --create-dirs --output "${CACHE_DIR}/report.json" &
+	curl -sL 'wttr.in/?F'--create-dirs --output "${CACHE_DIR}/report.txt" &
+
+	wait
+
+	echo "${now}" > "${TIMESTAMP_FILE}"
+fi
+
+[ ! -f "${CACHE_DIR}/report.txt" ] && echo "report was not downloaded" 1>&2 && exit 1
+
+[ "${SHOW}" = "true" ] && cat "${CACHE_DIR}/report.txt" && exit 0
+
+[ ! -f "${CACHE_DIR}/report.json" ] && echo "report was not downloaded" 1>&2 && exit 1
+
+text=$(jq --argjson symbols "${WEATHER_SYMBOL}" --argjson codemap "${CODE_TO_DESC}" -rj "
+def strip(x): x | gsub(\"^[[:space:]]\";\"\") | gsub(\"[[:space:]]$\";\"\");
+	.current_condition[0] |
+		\$symbols[\$codemap[strip(.weatherCode)]],\" \"
+		,\" ${THERMOMETER} \"
+		,.temp_${TEMP_UNIT}
+		,\"°${TEMP_UNIT}\n\"
+" < "${CACHE_DIR}/report.json")
+
+tooltip=$(jq --argjson symbols "${WEATHER_SYMBOL}" --argjson moon "${MOON_PHASES}" --argjson codemap "${CODE_TO_DESC}" -rj "
+def strip(x): x | gsub(\"^[[:space:]]\";\"\") | gsub(\"[[:space:]]$\";\"\");
+def bold(x): \"<b>\",x,\"</b>\";
+
+.weather[] | (
+	bold(.date),\"\n\n\",
+	\"High: \",.maxtemp${TEMP_UNIT},\"°${TEMP_UNIT}\n\",
+	\"Low: \",.mintemp${TEMP_UNIT},\"°${TEMP_UNIT}\n\n\",
+	(
+		.astronomy[0] | \"Sunset: \",.sunset,\"\n\",\$moon[strip(.moon_phase)],\" \",strip(.moon_phase),\"\n\"
+	),
+	\"\nHourly: \",
+	(
+		.hourly[] | (
+			.time
+			,\" \"
+			,\$symbols[\$codemap[strip(.weatherCode)]]
+			,\" \"
+			,strip(.weatherDesc[0].value)
+			,\"\n\"
+		)
+	),
+	\"\n\"
+)
+" < "${CACHE_DIR}/report.json")
+
+jq -r -c -n -M --arg text "${text}" --arg tooltip "${tooltip}" '$ARGS.named'
+

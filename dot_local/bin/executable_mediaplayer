@@ -1,0 +1,13 @@
+#!/bin/sh
+status="$(playerctl status 2>&1)"
+
+[ "${status}" = "No players found" ] && exit 0
+paused=$([ "${status}" = "Paused" ] && echo "[paused] ")
+
+player="default"
+[ "$(playerctl status -l)" = "spotify" ] && player=spotify
+
+text="${paused}$(playerctl metadata -f '{{title}} - {{artist}}')"
+
+jq -r -c -n -M --arg text "${text}" --arg alt "${player}" '$ARGS.named'
+

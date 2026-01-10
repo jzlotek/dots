@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+
+CONFIG_DIR="${XDG_CONFIG_DIR:-$HOME/.config}"
+WALLPAPER_FILE="${XDG_CONFIG_DIR:-$HOME/.config}/wallpaper.png"
+
+function restart_prog() {
+	if [ ! -z "$(pidof $1)" ]; then
+		killall $1
+		nohup >/dev/null $1 2>&1 &
+	fi
+}
+
+# generate colorschemes
+if command -v colorz >/dev/null && [ -f "${WALLPAPER_FILE}" ]; then
+	tmpfile=$(mktemp)
+	colorz -n 16 ~/.config/wallpaper.png --no-preview | sed 's/#//g' | awk '{ print "$bg" (NR-1) " = rgb("$1")" "\n" "$fg" (NR - 1) " = rgb("$2")"}' > "${tmpfile}"
+	mv "${tmpfile}" "${CONFIG_DIR}/hypr/theme.conf"
+	touch "${CONFIG_DIR}/hypr/theme.conf"
+	touch "${CONFIG_DIR}/hypr/hyprland.conf"
+fi
+
+restart_prog dunst
