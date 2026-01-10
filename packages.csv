@@ -10,6 +10,7 @@ neovim
 dmenu
 dunst
 tmux
+highlight
 ttf-hack-nerd
 noto-fonts
 noto-fonts-emoji
