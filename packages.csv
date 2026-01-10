@@ -29,6 +29,9 @@ dunst
 pipewire
 wireplumber
 hyprpolkitagent
+# bruh why doesnt colorz bundle its dependencies correctly
+python-setuptools
+colorz
 stow
 hyprlock
 chaotic-aur/icecat

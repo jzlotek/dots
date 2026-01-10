@@ -26,5 +26,3 @@ source $ZSH/oh-my-zsh.sh
 command -v fzf > /dev/null && source <(fzf --zsh)
 [ -f $HOME/.config/aliasrc ] && source "$HOME/.config/aliasrc"
 
-
-. "$HOME/.local/share/../bin/env"

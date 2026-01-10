@@ -2,4 +2,3 @@
 
 export XDG_CONFIG_HOME=$HOME/.config
 
-. "$HOME/.local/share/../bin/env"

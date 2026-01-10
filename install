@@ -24,7 +24,7 @@ CWD=$(pwd)
 
 TMPDIR=$(mktemp -d)
 DOTS_BRANCH="${DOTS_BRANCH:-master}"
-GIT_REPO_RAW_FILE_URL="${GIT_REPO_RAW_FILE_URL:-https://raw.githubusercontent.com/jzlotek/dots/refs/heads/$BRANCH}"
+GIT_REPO_RAW_FILE_URL="${GIT_REPO_RAW_FILE_URL:-https://raw.githubusercontent.com/jzlotek/dots/refs/heads/$DOTS_BRANCH}"
 DOTS_REPO="${DOTS_REPO:-git@github.com:jzlotek/dots.git}"
 CONFIG_DIR="${XDG_CONFIG_DIR:-$HOME/.config}"
 INSTALL_DIR="${XDG_DATA_HOME:-$HOME/.local/share}"
@@ -93,8 +93,10 @@ EOF
 }
 
 function install_ohmyzsh() {
-	ZSH="${CONFIG_DIR}/oh-my-zsh"
-	([ ! -d "${ZSH}" ] && sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)")
+	export ZSH="${CONFIG_DIR}/oh-my-zsh"
+	if [ ! -d "${ZSH}" ]; then
+		sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+	fi
 }
 
 function install_tmux() {
@@ -112,7 +114,8 @@ function sync_packages() {
 		packages_file=$(mktemp /tmp/packages.csv.XXX)
 		curl -o "${packages_file}" -L0 "${GIT_REPO_RAW_FILE_URL}/packages.csv"
 	fi
-	yay -S --needed --noconfirm >/dev/null $(sed '/^\S*#/d' "${packages_file}" | tr "\n" " " < "${packages_file}")
+	yay -S --needed --noconfirm >/dev/null $(sed '/^\s*#/d' "${packages_file}" | tr "\n" " " < "${packages_file}")
+	rm -f "${packages_file}"
 }
 
 function install_dotfiles() {
@@ -145,12 +148,12 @@ function install_dotfiles() {
 
 	echo "Running 'chezmoi $*'" >&2
 	"$chezmoi" init https://github.com/jzlotek/dots.git
-	"$chezmoi" cd
-	git checkout $DOTS_BRANCH
+	if [ $DOTS_BRANCH != master ]; then
+		cd $("$chezmoi" source-path)
+		git checkout $DOTS_BRANCH
+	fi
 	"$chezmoi" apply --force
 }
-
-orig_args=$@
 
 while getopts d:shf opt; do
 	case $opt in
