@@ -3,6 +3,7 @@ rsync
 fzf
 zsh
 chezmoi
+python
 openssh
 unzip
 neovim
@@ -28,7 +29,7 @@ dunst
 pipewire
 wireplumber
 hyprpolkitagent
-colorz
+# colorz
 stow
 hyprlock
 chaotic-aur/icecat
