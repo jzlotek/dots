@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -e
 
 CONFIG_DIR="${XDG_CONFIG_DIR:-$HOME/.config}"
 WALLPAPER_FILE="${XDG_CONFIG_DIR:-$HOME/.config}/wallpaper.png"
@@ -10,10 +11,31 @@ function restart_prog() {
 	fi
 }
 
-# generate colorschemes
-if command -v colorz >/dev/null && [ -f "${WALLPAPER_FILE}" ]; then
+if command -v magick >/dev/null && [ -f "${WALLPAPER_FILE}" ]; then
 	tmpfile=$(mktemp)
-	colorz -n 16 ~/.config/wallpaper.png --no-preview | sed 's/#//g' | awk '{ print "$bg" (NR-1) " = rgb("$1")" "\n" "$fg" (NR - 1) " = rgb("$2")"}' > "${tmpfile}"
+	colors=$(magick "${WALLPAPER_FILE}" +dither -unique-colors -colors 16 txt: | sed 's/#//g' | awk '{if (NR != 1) {print $3}}' | sort -u)
+
+	col1=$(echo -e "${colors}" | awk '{if (NR==10){print $0}}')
+	col2=$(echo -e "${colors}" | awk '{if (NR==14){print $0}}')
+	cat <<EOF > $tmpfile
+hl.config({
+	general = {
+		col = {
+			active_border = "rgba(${col1}aa)",
+			inactive_border = "rgba(${col2}aa)",
+		}
+	}
+})
+EOF
+	mv "${tmpfile}" "${CONFIG_DIR}/hypr/modules/theme.lua"
+	hyprctl reload >/dev/null
+	exit 0
+fi
+
+# generate colorschemes
+if command -v uvx >/dev/null && [ -f "${WALLPAPER_FILE}" ]; then
+	tmpfile=$(mktemp)
+	uvx colorz -n 16 ~/.config/wallpaper.png --no-preview | sed 's/#//g' | awk '{ print "$bg" (NR-1) " = rgb("$1")" "\n" "$fg" (NR - 1) " = rgb("$2")"}' > "${tmpfile}"
 	mv "${tmpfile}" "${CONFIG_DIR}/hypr/theme.conf"
 	touch "${CONFIG_DIR}/hypr/theme.conf"
 	touch "${CONFIG_DIR}/hypr/hyprland.conf"

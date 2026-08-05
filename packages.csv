@@ -31,7 +31,8 @@ pipewire
 wireplumber
 hyprpolkitagent
 python-setuptools
-colorz
+uv
+quickshell
 stow
 hyprlock
 chaotic-aur/icecat

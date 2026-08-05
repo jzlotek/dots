@@ -19,6 +19,7 @@ were bloated and used python + requests to do what ~200 lines
 of POSIX shell could do (and do it faster).
 
 -f force reload
+-s show weather in ascii form
 -m use metric output instead of imperial
 -h show this message and exit
 EOF
@@ -140,7 +141,7 @@ now=$(date "+%s")
 if [ "${FORCE}" != "false" ] || [ "${now}" -gt $((ts + 3600)) ]; then
 
 	curl -sL 'wttr.in/?&format=j1' --create-dirs --output "${CACHE_DIR}/report.json" &
-	curl -sL 'wttr.in/?F'--create-dirs --output "${CACHE_DIR}/report.txt" &
+	curl -sL 'wttr.in/?F' --create-dirs --output "${CACHE_DIR}/report.txt" &
 
 	wait
 

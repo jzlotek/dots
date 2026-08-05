@@ -18,7 +18,7 @@
 #
 # Built with <3 (and because I have done this too many times)
 # - jzlotek
-set -uxe
+set -uex
 
 CWD=$(pwd)
 
@@ -30,7 +30,7 @@ CONFIG_DIR="${XDG_CONFIG_DIR:-$HOME/.config}"
 INSTALL_DIR="${XDG_DATA_HOME:-$HOME/.local/share}"
 SYNC="false"
 FULL="false"
-DIRECTORY=""
+USERNAME="${USERNAME:-$(whoami)}"
 
 function cleanup() {
 	rm -r $TMPDIR
@@ -66,28 +66,42 @@ function check_pkg_installed() {
 }
 
 function install_yay() {
+	# the sudoers file has an includedir in /etc/sudoers.d/
+	# so we will create a temp no password for the wheel group
+	# then remove the file afterward
+	if [ $USERNAME = "root" ]; then
+		echo "Cannot install yay with root"
+		exit 1
+	fi
+
+	echo "%wheel ALL=(ALL:ALL) NOPASSWD: ALL" > /etc/sudoers.d/tmp_wheel_nopasswd
+	trap 'rm /etc/sudoers.d/tmp_wheel_nopasswd -f' EXIT INT TERM
+
 	command -v yay >/dev/null && return
 	check_pkg_installed git
+	chmod 777 "${TMPDIR}"
 	pushd "${TMPDIR}" >/dev/null
-	git clone https://aur.archlinux.org/yay.git
+	sudo -u "${USERNAME}" git clone https://aur.archlinux.org/yay.git
 	pushd yay >/dev/null
-	makepkg -si
+
+	sudo -u "${USERNAME}" makepkg -si --noconfirm
+	rm /etc/sudoers.d/tmp_wheel_nopasswd -f
+
 	popd >/dev/null
 	popd >/dev/null
 }
 
 function setup_chaotic_aur() {
-	sudo pacman-key --recv-key 3056513887B78AEB --keyserver keyserver.ubuntu.com
-	sudo pacman-key --lsign-key 3056513887B78AEB
-	sudo pacman -U 'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-keyring.pkg.tar.zst' --noconfirm
-	sudo pacman -U 'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-mirrorlist.pkg.tar.zst' --noconfirm
+	pacman-key --recv-key 3056513887B78AEB --keyserver keyserver.ubuntu.com
+	pacman-key --lsign-key 3056513887B78AEB
+	pacman -U 'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-keyring.pkg.tar.zst' --noconfirm
+	pacman -U 'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-mirrorlist.pkg.tar.zst' --noconfirm
 
 	if ! grep -q "/etc/pacman.d/chaotic-mirrorlist" "/etc/pacman.conf"; then
-		sudo bash -c 'cat >> /etc/pacman.conf <<-EOF
+		cat >> /etc/pacman.conf <<-EOF
 [chaotic-aur]
 Include = /etc/pacman.d/chaotic-mirrorlist
 EOF
-'
 	fi
 
 }
@@ -98,31 +112,38 @@ function install_ohmyzsh() {
 		sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
 	fi
 }
-
+ 
 function install_tmux() {
 	[ ! -d "${CONFIG_DIR}/tpm/plugins/tpm" ] && git clone https://github.com/tmux-plugins/tpm "${CONFIG_DIR}/tpm/plugins/tpm"
 	ln -sf "${CONFIG_DIR}/tmux/tmux.conf" $HOME/.tmux.conf
 }
 
 function sync_packages() {
-	sudo pacman -Sy
-	sudo pacman -S --needed git curl --noconfirm
+	if [ $(whoami) != root ]; then
+		echo "Can only sync packages as root"
+		exit 1
+	fi
+
+	sed -i "s/-j2/-j$(nproc)/;s/^#MAKEFLAGS/MAKEFLAGS/" /etc/makepkg.conf
+	sed -iE "s/^#?ParallelDownloads/ParallelDownloads = 10/" /etc/pacman.conf
+	sed -i "s/^#Color/Color/;s/^#ILoveCandy/ILoveCandy/" /etc/pacman.conf
+
+
+	pacman -Syy
+	pacman -S --needed archlinux-keyring --noconfirm
+	pacman -S --needed git curl --noconfirm
 	install_yay
 
 	packages_file=packages.csv
 	if [ ! -f "${packages_file}" ]; then
-		packages_file=$(mktemp /tmp/packages.csv.XXX)
+		packages_file=$(mktemp "${TMPDIR}/packages.csv.XXX")
 		curl -o "${packages_file}" -L0 "${GIT_REPO_RAW_FILE_URL}/packages.csv"
 	fi
-	yay -S --needed --noconfirm >/dev/null $(sed '/^\s*#/d' "${packages_file}" | tr "\n" " " < "${packages_file}")
-	rm -f "${packages_file}"
+	yay -Syy --needed --noconfirm >/dev/null $(sed -e 's/[[:blank:]]*#.*$//g' -e '/^[[:blank:]]*$/d' < "${packages_file}" | tr "\n" " " < "${packages_file}")
 }
 
+
 function install_dotfiles() {
-	if [ "${FULL}" = "true" ]; then
-		stow wm -t "${HOME}" --dotfiles
-		# dot_local/bin/setbg wm/dot-config/hypr/wallpaper.png
-	fi
 	set -eu
 
 	if ! chezmoi="$(command -v chezmoi)"; then
@@ -149,22 +170,66 @@ function install_dotfiles() {
 	echo "Running 'chezmoi $*'" >&2
 	"$chezmoi" init https://github.com/jzlotek/dots.git
 	if [ $DOTS_BRANCH != master ]; then
-		cd $("$chezmoi" source-path)
-		git checkout $DOTS_BRANCH
+		pushd $("$chezmoi" source-path) >/dev/null
+		"$chezmoi" git checkout $DOTS_BRANCH
+		popd >/dev/null
 	fi
 	"$chezmoi" apply --force
 }
 
-while getopts d:shf opt; do
+function bootstrap() {
+	setup_chaotic_aur
+	sync_packages
+}
+function prompt() {
+	read ${3:-} -p "$1 > " $2 </dev/tty
+}
+
+function setup_user() {
+	sed -i "s/^#\s*%wheel ALL=(ALL) NOPASSWD: ALL/%wheel ALL=(ALL) NOPASSWD: ALL/" /etc/sudoers
+
+	username=""
+	pass1=""
+	pass2=""
+
+	while [ -z "$username" ];do
+		prompt "Username" username
+	done
+	if grep -q "$username" /etc/passwd; then
+		echo $username
+		return
+	fi
+	while [ -z "$pass1" ];do
+		prompt "Password" pass1 -s
+	done
+	while [ "$pass1" != "$pass2" ]; do
+		prompt "Repeat Password" pass2 -s
+	done
+
+	grep -q "$username" /etc/passwd || useradd -m -G wheel "${username}" -s /bin/zsh
+	printf "%s\n%s\n" "$pass1" "$pass2" | passwd "$username"
+	unset pass1 pass2
+	echo $username
+}
+
+function install_all() {
+	check_pkg_installed git
+	check_pkg_installed curl
+	check_pkg_installed chezmoi
+
+	install_ohmyzsh
+	install_tmux
+
+	install_dotfiles
+}
+
+while getopts shf opt; do
 	case $opt in
 		s)
 			SYNC="true"
 			;;
 		f)
 			FULL="true"
-			;;
-		d)
-			DIRECTORY=$(readlink -f "${OPTARG}")
 			;;
 		h)
 			print_help
@@ -176,15 +241,18 @@ while getopts d:shf opt; do
 	esac
 done
 
-[ $SYNC = "true" ] && setup_chaotic_aur && sync_packages
+if [ "$(whoami)" = "root" ]; then
+	username=$(setup_user)
+	export USERNAME=$username
 
-check_pkg_installed git
-check_pkg_installed curl
-check_pkg_installed stow
+	bootstrap
+	sudo -u "$username" install_all
+	exit 0
+elif [ "${SYNC}" = "true" ]; then
+	export USERNAME=$(whoami)
+	sudo bootstrap
+fi
 
-install_ohmyzsh
-install_tmux
-
-install_dotfiles
+install_all
 
 echo "Success"
