@@ -1,0 +1,7 @@
+require("modules.env")
+require("modules.core")
+pcall(require, "modules.theme")
+require("modules.permissions")
+require("modules.binds")
+require("modules.autostart")
+require("modules.monitors")

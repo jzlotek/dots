@@ -1,0 +1,8 @@
+font-family = SauceCodePro NF
+theme = Neutron
+shell-integration-features = ssh-env
+window-decoration = none
+confirm-close-surface = false
+desktop-notifications = false
+resize-overlay = never
+app-notifications = no-clipboard-copy
