@@ -112,7 +112,7 @@ function install_ohmyzsh() {
 		sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
 	fi
 }
- 
+
 function install_tmux() {
 	[ ! -d "${CONFIG_DIR}/tpm/plugins/tpm" ] && git clone https://github.com/tmux-plugins/tpm "${CONFIG_DIR}/tpm/plugins/tpm"
 	ln -sf "${CONFIG_DIR}/tmux/tmux.conf" $HOME/.tmux.conf
