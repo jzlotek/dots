@@ -2,7 +2,9 @@
 set -e
 
 CONFIG_DIR="${XDG_CONFIG_DIR:-$HOME/.config}"
-WALLPAPER_FILE="${XDG_CONFIG_DIR:-$HOME/.config}/wallpaper.png"
+STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}"
+WALLPAPER_FILE="${CONFIG_DIR}/wallpaper.png"
+color_file="${STATE_DIR}/theme/colors.json"
 
 function restart_prog() {
 	if [ ! -z "$(pidof $1)" ]; then
@@ -11,34 +13,185 @@ function restart_prog() {
 	fi
 }
 
-if command -v magick >/dev/null && [ -f "${WALLPAPER_FILE}" ]; then
-	tmpfile=$(mktemp)
-	colors=$(magick "${WALLPAPER_FILE}" +dither -unique-colors -colors 16 txt: | sed 's/#//g' | awk '{if (NR != 1) {print $3}}' | sort -u)
+if ! command -v magick >/dev/null || [ ! -f "${WALLPAPER_FILE}" ]; then
+	exit 0
+fi
 
-	col1=$(echo -e "${colors}" | awk '{if (NR==10){print $0}}')
-	col2=$(echo -e "${colors}" | awk '{if (NR==14){print $0}}')
-	cat <<EOF > $tmpfile
+mkdir -p "$(dirname "${color_file}")"
+
+palette=$(magick "${WALLPAPER_FILE}" -resize 400x400 -modulate 100,108,100 \
+	-colors 64 -depth 8 -format '%c' histogram:info:- | python3 -c '
+import sys, re, json, math, colorsys
+
+cols = []
+for line in sys.stdin:
+    m = re.search(r"(\d+):\s*\(\s*(\d+),\s*(\d+),\s*(\d+)", line)
+    if not m:
+        continue
+    cnt = int(m.group(1))
+    r, g, b = (int(m.group(i)) / 255.0 for i in (2, 3, 4))
+    h, l, s = colorsys.rgb_to_hls(r, g, b)
+    lum = 0.2126 * r + 0.7152 * g + 0.0722 * b
+    cols.append({"cnt": cnt, "r": r, "g": g, "b": b,
+                 "h": h, "l": l, "s": s, "lum": lum})
+
+if not cols:
+    sys.exit(1)
+
+total = sum(c["cnt"] for c in cols)
+
+def clamp(x, lo=0.0, hi=1.0):
+    return max(lo, min(hi, x))
+
+def hls_hex(h, l, s):
+    r, g, b = colorsys.hls_to_rgb(h % 1.0, clamp(l), clamp(s))
+    return "#%02X%02X%02X" % (round(r * 255), round(g * 255), round(b * 255))
+
+def rel_lum(hexc):
+    hexc = hexc.lstrip("#")
+    ch = [int(hexc[i:i + 2], 16) / 255 for i in (0, 2, 4)]
+    ch = [c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4 for c in ch]
+    return 0.2126 * ch[0] + 0.7152 * ch[1] + 0.0722 * ch[2]
+
+def contrast(a, b):
+    la, lb = rel_lum(a), rel_lum(b)
+    hi, lo = max(la, lb), min(la, lb)
+    return (hi + 0.05) / (lo + 0.05)
+
+def hue_dist(a, b):
+    return abs((a - b + 0.5) % 1.0 - 0.5)
+
+def lum_pct(p):
+    target = total * p
+    acc = 0
+    for c in sorted(cols, key=lambda c: c["lum"]):
+        acc += c["cnt"]
+        if acc >= target:
+            return c
+    return cols[-1]
+
+# --- Is the wallpaper monochrome? -----------------------------------------
+# Hasler / Suesstrunk colourfulness, plus a count of distinct saturated hues.
+mrg = myb = 0.0
+for c in cols:
+    mrg += c["cnt"] * (c["r"] - c["g"])
+    myb += c["cnt"] * (0.5 * (c["r"] + c["g"]) - c["b"])
+mrg /= total
+myb /= total
+vrg = vyb = 0.0
+for c in cols:
+    vrg += c["cnt"] * (c["r"] - c["g"] - mrg) ** 2
+    vyb += c["cnt"] * (0.5 * (c["r"] + c["g"]) - c["b"] - myb) ** 2
+colourfulness = math.sqrt(vrg / total + vyb / total) + 0.3 * math.hypot(mrg, myb)
+
+sat_cols = [c for c in cols if c["s"] > 0.16 and 0.12 < c["l"] < 0.9]
+sat_total = sum(c["cnt"] for c in sat_cols) or 1
+clusters = []
+for c in sorted(sat_cols, key=lambda c: -c["cnt"] * c["s"]):
+    for cl in clusters:
+        if hue_dist(c["h"], cl["h"]) < 0.06:
+            cl["w"] += c["cnt"] * c["s"]
+            break
+    else:
+        clusters.append({"h": c["h"], "w": c["cnt"] * c["s"]})
+strong_clusters = [cl for cl in clusters if cl["w"] > 0.06 * sat_total]
+
+mono = colourfulness < 0.05 or len(strong_clusters) < 2
+
+if strong_clusters:
+    dom_h = max(strong_clusters, key=lambda cl: cl["w"])["h"]
+else:
+    dom_h = 0.0
+
+# --- Base tones ----------------------------------------------------------
+dark = lum_pct(0.06)
+light = lum_pct(0.94)
+
+if mono:
+    bg_h = fg_h = mut_h = 0.0
+    bg_s = fg_s = mut_s = 0.0
+else:
+    bg_h, fg_h, mut_h = dark["h"], light["h"], dom_h
+    bg_s = clamp(dark["s"] * 0.7, 0.0, 0.22)
+    fg_s = clamp(light["s"] * 0.6, 0.0, 0.14)
+    mut_s = 0.18
+
+lo_l = clamp(dark["lum"], 0.06, 0.15)
+hi_l = clamp(light["lum"], 0.85, 0.96)
+
+out = {
+    "font": "consolas",
+    "fontSize": 14,
+    "bg": hls_hex(bg_h, lo_l, bg_s),
+    "fg": hls_hex(fg_h, hi_l, fg_s),
+    "muted": hls_hex(mut_h, (lo_l + hi_l) / 2.0, mut_s),
+}
+bg = out["bg"]
+out["color0"] = hls_hex(bg_h, lo_l + 0.06, bg_s)
+out["color8"] = hls_hex(mut_h, 0.42, mut_s * 0.8)
+out["color7"] = hls_hex(fg_h, hi_l - 0.17, fg_s)
+out["color15"] = hls_hex(fg_h, min(hi_l + 0.03, 0.98), fg_s * 0.6)
+
+# --- Accents -----------------------------------------------------------
+DEFAULT = [(355, 0.62), (95, 0.55), (39, 0.60),
+           (207, 0.58), (286, 0.55), (187, 0.55)]
+
+accents = []
+if mono:
+    for hd, sd in DEFAULT:
+        accents.append({"h": hd / 360.0, "s": sd, "l": 0.62})
+else:
+    cand = [c for c in cols if 0.12 < c["l"] < 0.95]
+    cand.sort(key=lambda c: -c["cnt"] * (0.25 + c["s"]))
+    picked = []
+    for c in cand:
+        if all(hue_dist(c["h"], p["h"]) > 0.05 for p in picked):
+            picked.append(dict(c))
+        if len(picked) == 6:
+            break
+    # Hue-poor image: fill the remaining slots with light/dark variants of the
+    # hues it does have rather than near-duplicate colours.
+    base_n = len(picked)
+    while len(picked) < 6 and base_n:
+        src = picked[len(picked) % base_n]
+        alt = 0.70 if src["l"] < 0.5 else 0.44
+        picked.append({**src, "l": alt})
+    picked.sort(key=lambda c: (c["h"], c["l"]))
+    for c in picked[:6]:
+        accents.append({"h": c["h"],
+                        "s": clamp(c["s"] * 1.12, 0.34, 0.9),
+                        "l": clamp(c["l"], 0.45, 0.72)})
+
+for i, a in enumerate(accents, start=1):
+    l = a["l"]
+    col = hls_hex(a["h"], l, a["s"])
+    while contrast(col, bg) < 3.2 and l < 0.84:
+        l += 0.02
+        col = hls_hex(a["h"], l, a["s"])
+    out["color%d" % i] = col
+    out["color%d" % (i + 8)] = hls_hex(a["h"], min(l + 0.14, 0.84),
+                                       max(a["s"] - 0.08, 0.25))
+
+print(json.dumps(out, indent=2))
+')
+
+printf '%s\n' "${palette}" | jq . > "${color_file}.tmp"
+mv "${color_file}.tmp" "${color_file}"
+
+active=$(jq -r '.color4' "${color_file}" | tr -d '#')
+inactive=$(jq -r '.color8' "${color_file}" | tr -d '#')
+tmpfile=$(mktemp)
+cat <<EOF > "${tmpfile}"
 hl.config({
 	general = {
 		col = {
-			active_border = "rgba(${col1}aa)",
-			inactive_border = "rgba(${col2}aa)",
+			active_border = "rgba(${active}ee)",
+			inactive_border = "rgba(${inactive}aa)",
 		}
 	}
 })
 EOF
-	mv "${tmpfile}" "${CONFIG_DIR}/hypr/modules/theme.lua"
-	hyprctl reload >/dev/null
-	exit 0
-fi
-
-# generate colorschemes
-if command -v uvx >/dev/null && [ -f "${WALLPAPER_FILE}" ]; then
-	tmpfile=$(mktemp)
-	uvx colorz -n 16 ~/.config/wallpaper.png --no-preview | sed 's/#//g' | awk '{ print "$bg" (NR-1) " = rgb("$1")" "\n" "$fg" (NR - 1) " = rgb("$2")"}' > "${tmpfile}"
-	mv "${tmpfile}" "${CONFIG_DIR}/hypr/theme.conf"
-	touch "${CONFIG_DIR}/hypr/theme.conf"
-	touch "${CONFIG_DIR}/hypr/hyprland.conf"
-fi
+mv "${tmpfile}" "${CONFIG_DIR}/hypr/modules/theme.lua"
+hyprctl reload >/dev/null
 
 restart_prog dunst

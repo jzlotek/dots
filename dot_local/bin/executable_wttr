@@ -42,7 +42,7 @@ while getopts "fmhs" opt; do
 			help && exit 1;;
 	esac
 done
-THERMOMETER="🌡"
+THERMOMETER=""
 
 WEATHER_SYMBOL='{
     "Unknown": "✨",
