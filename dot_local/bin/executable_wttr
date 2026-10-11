@@ -125,7 +125,7 @@ CODE_TO_DESC='{
 
 MOON_PHASES='{
 "New Moon": "🌑",
-"Waxing Crecent": "🌒",
+"Waxing Crescent": "🌒",
 "First Quarter": "🌓",
 "Waxing Gibbous": "🌔",
 "Full Moon": "🌕",
